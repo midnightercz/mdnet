@@ -1,0 +1,12 @@
+Write typescript application. It will have backend and frontend part. Backend part will serve static markdown files.
+Frontend part will use markdown-it to render html pages from the static files. It has to support obsidian links
+like [[link to to another page]] and way to use custom plugins for example like obsidan ```plugin ```
+
+What to use
+-----------
+
+- For backend use appropriate typescript libraries
+- For front-end, do no use rect, vue or similar frameworks. If you use any framework it has to be lightweight.
+  Critical priotity is html size of final page. 
+
+
