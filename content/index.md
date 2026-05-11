@@ -13,6 +13,7 @@ MDNet is a lightweight markdown wiki with Obsidian-style features.
 - **Theme Toggle**: Switch between Solarized Dark and Light modes, see [[theme-example]]
 - **Lightweight**: No heavy frameworks, minimal bundle size
 - **Fast**: Built with TypeScript and esbuild
+- **Multi-Source**: Aggregate documentation from multiple remote sources with source-aware routing
 
 ## Getting Started
 
@@ -20,12 +21,21 @@ Check out these examples:
 
 - [[example]] - Wiki links and custom plugins
 - [[features]] - Full features overview
+- [[multi-source-routing]] - Multi-source routing and URL structure ⭐
+- [[linking-guide]] - Complete guide to all link types
 - [[frontmatter-example]] - Front matter metadata
 - [[layout-example]] - Two-column layouts
 - [[page-width-example]] - Custom page widths (60%)
 - [[full-width-example]] - Full width layout (100%)
 - [[hashtag-example]] - Clickable hashtags and tag navigation
 - [[property-search-example]] - Search by front matter properties
+- [[anchor-test]] - Anchor links within pages
+- [[directory-structure]] - Subdirectory support
+
+## Infrastructure Examples
+
+- [[infra/rosa-machine-pool-modification|ROSA Machine Pool Guide]]
+- [[infra/CONTACT|Infrastructure Team Contacts]]
 
 ## How Wiki Links Work
 

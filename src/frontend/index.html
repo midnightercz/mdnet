@@ -70,6 +70,24 @@
       margin-bottom: 20px;
       display: none;
     }
+    #source-badge {
+      display: none;
+      background: var(--bg-secondary);
+      border-left: 4px solid var(--blue);
+      padding: 8px 15px;
+      margin-bottom: 20px;
+      border-radius: 4px;
+      font-size: 0.9em;
+      color: var(--text-secondary);
+    }
+    #source-badge.visible {
+      display: block;
+    }
+    #source-badge .source-name {
+      color: var(--blue);
+      font-weight: 600;
+      margin-left: 5px;
+    }
     #content { width: 100%; }
     .loading { color: var(--text-secondary); font-style: italic; }
 
@@ -432,16 +450,194 @@
         max-height: 85vh;
       }
     }
+
+    /* Settings modal */
+    #settings-modal {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: rgba(0, 0, 0, 0.7);
+      display: none;
+      align-items: flex-start;
+      justify-content: center;
+      z-index: 2000;
+      padding-top: 80px;
+    }
+    #settings-modal.active {
+      display: flex;
+    }
+    .settings-container {
+      background: var(--bg-primary);
+      border: 2px solid var(--border-color);
+      border-radius: 8px;
+      width: 90%;
+      max-width: 800px;
+      max-height: 80vh;
+      display: flex;
+      flex-direction: column;
+      box-shadow: 0 10px 40px rgba(0, 0, 0, 0.5);
+    }
+    .settings-header {
+      padding: 20px;
+      border-bottom: 1px solid var(--border-color);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    .settings-header h2 {
+      color: var(--orange);
+      font-size: 1.5em;
+      margin: 0;
+    }
+    .close-button {
+      background: var(--bg-secondary);
+      color: var(--yellow);
+      border: 1px solid var(--border-color);
+      padding: 8px 15px;
+      border-radius: 4px;
+      cursor: pointer;
+      font-family: 'Consolas', 'Monaco', 'Courier New', monospace;
+      font-size: 1.5em;
+      font-weight: 600;
+      transition: background 0.2s, color 0.2s;
+      line-height: 1;
+    }
+    .close-button:hover {
+      background: var(--red);
+      color: var(--bg-primary);
+    }
+    .settings-content {
+      flex: 1;
+      overflow-y: auto;
+      padding: 20px;
+    }
+    .sources-list {
+      margin-bottom: 30px;
+    }
+    .source-item {
+      background: var(--bg-secondary);
+      border: 1px solid var(--border-color);
+      border-radius: 4px;
+      padding: 15px;
+      margin-bottom: 10px;
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+    }
+    .source-info {
+      flex: 1;
+    }
+    .source-info strong {
+      display: block;
+      color: var(--yellow);
+      font-size: 1.1em;
+      margin-bottom: 8px;
+    }
+    .source-urls {
+      font-size: 0.85em;
+      color: var(--text-secondary);
+    }
+    .source-urls div {
+      margin: 4px 0;
+      word-break: break-all;
+    }
+    .remove-source-btn {
+      background: var(--bg-secondary);
+      color: var(--red);
+      border: 1px solid var(--border-color);
+      padding: 6px 12px;
+      border-radius: 4px;
+      cursor: pointer;
+      font-family: 'Consolas', 'Monaco', 'Courier New', monospace;
+      transition: background 0.2s, color 0.2s;
+      white-space: nowrap;
+    }
+    .remove-source-btn:hover {
+      background: var(--red);
+      color: var(--bg-primary);
+    }
+    .add-source-form {
+      background: var(--bg-secondary);
+      border: 1px solid var(--border-color);
+      border-radius: 4px;
+      padding: 20px;
+    }
+    .add-source-form h3 {
+      color: var(--orange);
+      font-size: 1.2em;
+      margin-bottom: 15px;
+    }
+    .add-source-form input {
+      width: 100%;
+      padding: 10px;
+      margin-bottom: 10px;
+      font-size: 0.9em;
+      font-family: 'Consolas', 'Monaco', 'Courier New', monospace;
+      background: var(--bg-primary);
+      color: var(--text-primary);
+      border: 1px solid var(--border-color);
+      border-radius: 4px;
+      outline: none;
+    }
+    .add-source-form input:focus {
+      border-color: var(--blue);
+    }
+    .add-source-form button {
+      background: var(--blue);
+      color: var(--bg-primary);
+      border: none;
+      padding: 10px 20px;
+      border-radius: 4px;
+      cursor: pointer;
+      font-family: 'Consolas', 'Monaco', 'Courier New', monospace;
+      font-weight: 600;
+      transition: background 0.2s;
+    }
+    .add-source-form button:hover {
+      background: var(--green);
+    }
+    #cancel-edit-btn {
+      background: var(--bg-secondary);
+      color: var(--text-primary);
+      border: 1px solid var(--border-color);
+    }
+    #cancel-edit-btn:hover {
+      background: var(--red);
+      color: var(--bg-primary);
+    }
+    .search-result-source {
+      display: inline-block;
+      background: var(--blue);
+      color: var(--bg-primary);
+      padding: 2px 6px;
+      border-radius: 3px;
+      font-size: 0.75em;
+      font-weight: 600;
+      margin-right: 8px;
+    }
+    @media (max-width: 768px) {
+      #settings-modal {
+        padding-top: 60px;
+      }
+      .settings-container {
+        width: 95%;
+        max-height: 85vh;
+      }
+    }
   </style>
 </head>
 <body>
   <div class="toggle-buttons">
-    <button id="search-toggle" title="Search">S</button>
+    <button id="search-toggle" title="Search">🔍</button>
+    <button id="settings-toggle" title="Settings">⚙</button>
     <button id="theme-toggle" title="Toggle theme">☀</button>
     <button id="layout-toggle" title="Toggle layout">|||</button>
   </div>
   <div class="container">
     <div id="error"></div>
+    <div id="source-badge"></div>
     <div id="content"></div>
   </div>
 
@@ -449,7 +645,7 @@
   <div id="search-modal">
     <div class="search-container">
       <div class="search-header">
-        <input type="text" id="search-input" placeholder="Search pages or #tags..." autocomplete="off">
+        <input type="text" id="search-input" placeholder="Search pages, #tags, or property:value..." autocomplete="off">
       </div>
       <div class="search-results" id="search-results">
         <div class="search-no-results">Type to search...</div>
@@ -458,6 +654,31 @@
         <button id="search-prev-page">‹ Prev</button>
         <span class="search-pagination-info" id="search-page-info"></span>
         <button id="search-next-page">Next ›</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Settings Modal -->
+  <div id="settings-modal">
+    <div class="settings-container">
+      <div class="settings-header">
+        <h2>Source Configuration</h2>
+        <button id="close-settings" class="close-button">×</button>
+      </div>
+      <div class="settings-content">
+        <div id="sources-list" class="sources-list">
+          <!-- Dynamic list of configured sources -->
+        </div>
+        <div class="add-source-form">
+          <h3 id="source-form-title">Add New Source</h3>
+          <input type="text" id="source-name" placeholder="Source name (e.g., local-docs, prod-wiki)" pattern="[a-zA-Z0-9_-]+" title="Only letters, numbers, dashes, and underscores. No spaces.">
+          <input type="url" id="source-index-url" placeholder="Index URL (search-index.json)">
+          <input type="url" id="source-content-url" placeholder="Content base URL">
+          <div style="display: flex; gap: 10px;">
+            <button id="add-source-btn">Add Source</button>
+            <button id="cancel-edit-btn" style="display: none;">Cancel</button>
+          </div>
+        </div>
       </div>
     </div>
   </div>

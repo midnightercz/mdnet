@@ -2,22 +2,110 @@ const fs = require('fs');
 const path = require('path');
 const yaml = require('js-yaml');
 
-const CONTENT_DIR = process.env.CONTENT_DIR || path.join(__dirname, 'content');
-const INDEX_FILE = path.join(__dirname, 'public', 'search-index.json');
-const STATE_FILE = path.join(__dirname, '.index-state.json');
+// Default paths (can be overridden via CLI arguments)
+const DEFAULT_CONTENT_DIR = process.env.CONTENT_DIR || path.join(__dirname, 'content');
+const DEFAULT_INDEX_FILE = path.join(__dirname, 'public', 'search-index.json');
+const DEFAULT_STATE_FILE = path.join(__dirname, '.index-state.json');
+
+/**
+ * Display help text and exit
+ */
+function showHelp() {
+  console.log(`
+Usage: node build-index.js [options]
+
+Options:
+  --input <dir>       Input directory containing markdown files (default: content/)
+  --output <file>     Output file path for search index (default: public/search-index.json)
+  --state <file>      State file path for incremental indexing (default: .index-state.json)
+  --help              Show this help message
+
+Examples:
+  # Use defaults (content/ -> public/search-index.json)
+  node build-index.js
+
+  # Custom input directory
+  node build-index.js --input docs/
+
+  # Custom output file
+  node build-index.js --output dist/search-index.json
+
+  # Custom input and output
+  node build-index.js --input /path/to/docs --output /path/to/index.json
+
+Environment Variables:
+  CONTENT_DIR         Default input directory (overridden by --input)
+`);
+  process.exit(0);
+}
+
+/**
+ * Parse command line arguments
+ * @param {string[]} argv - Process arguments (process.argv)
+ * @returns {object} Parsed configuration
+ */
+function parseArguments(argv) {
+  // Remove node and script name
+  const args = argv.slice(2);
+
+  // Check for help flag
+  if (args.includes('--help') || args.includes('-h')) {
+    showHelp();
+  }
+
+  const config = {
+    contentDir: DEFAULT_CONTENT_DIR,
+    indexFile: DEFAULT_INDEX_FILE,
+    stateFile: DEFAULT_STATE_FILE
+  };
+
+  for (let i = 0; i < args.length; i++) {
+    const arg = args[i];
+
+    switch (arg) {
+      case '--input':
+        if (i + 1 >= args.length) {
+          throw new Error('--input requires a directory path');
+        }
+        config.contentDir = path.resolve(args[++i]);
+        break;
+
+      case '--output':
+        if (i + 1 >= args.length) {
+          throw new Error('--output requires a file path');
+        }
+        config.indexFile = path.resolve(args[++i]);
+        break;
+
+      case '--state':
+        if (i + 1 >= args.length) {
+          throw new Error('--state requires a file path');
+        }
+        config.stateFile = path.resolve(args[++i]);
+        break;
+
+      default:
+        if (arg.startsWith('--')) {
+          console.warn(`Warning: Unknown option: ${arg}`);
+        }
+    }
+  }
+
+  return config;
+}
 
 // Load previous index state
-function loadState() {
+function loadState(stateFile) {
   try {
-    return JSON.parse(fs.readFileSync(STATE_FILE, 'utf-8'));
+    return JSON.parse(fs.readFileSync(stateFile, 'utf-8'));
   } catch (e) {
     return { indexed: {} };
   }
 }
 
 // Save index state
-function saveState(state) {
-  fs.writeFileSync(STATE_FILE, JSON.stringify(state, null, 2));
+function saveState(state, stateFile) {
+  fs.writeFileSync(stateFile, JSON.stringify(state, null, 2));
 }
 
 // Parse front matter from markdown
@@ -134,8 +222,42 @@ function normalizeFrontMatterProperties(frontMatter) {
   return normalized;
 }
 
+// Recursively find all markdown files in a directory
+function findMarkdownFiles(dir, baseDir = dir) {
+  const results = [];
+  const entries = fs.readdirSync(dir, { withFileTypes: true });
+
+  for (const entry of entries) {
+    const fullPath = path.join(dir, entry.name);
+
+    // Skip hidden files and directories (starting with .)
+    if (entry.name.startsWith('.')) {
+      continue;
+    }
+
+    if (entry.isDirectory()) {
+      // Skip common non-content directories
+      if (entry.name === 'node_modules' || entry.name === 'dist' || entry.name === 'build') {
+        continue;
+      }
+      // Recursively search subdirectories
+      results.push(...findMarkdownFiles(fullPath, baseDir));
+    } else if (entry.isFile()) {
+      // Only index files with .md extension (case-insensitive)
+      const lowerName = entry.name.toLowerCase();
+      if (lowerName.endsWith('.md') && !lowerName.endsWith('.bak.md')) {
+        // Store relative path from base directory
+        const relativePath = path.relative(baseDir, fullPath);
+        results.push(relativePath);
+      }
+    }
+  }
+
+  return results;
+}
+
 // Index a single file
-function indexFile(filename, filePath, timestamp) {
+function indexFile(relativePath, filePath, timestamp) {
   const content = fs.readFileSync(filePath, 'utf-8');
   const { frontMatter, content: markdownContent } = parseFrontMatter(content);
 
@@ -147,8 +269,13 @@ function indexFile(filename, filePath, timestamp) {
   const links = extractLinks(markdownContent);
   const properties = normalizeFrontMatterProperties(frontMatter);
 
+  // Use relative path without .md extension as filename
+  // This preserves subdirectory structure (e.g., "guides/intro")
+  // Case-insensitive to handle .MD, .Md, etc.
+  const filename = relativePath.replace(/\.md$/i, '').replace(/\\/g, '/');
+
   return {
-    filename: filename.replace('.md', ''),
+    filename,
     title,
     headings,
     tags,
@@ -159,33 +286,41 @@ function indexFile(filename, filePath, timestamp) {
 }
 
 // Build the search index
-function buildIndex() {
-  const state = loadState();
+function buildIndex(config = {}) {
+  // Use provided config or defaults
+  const contentDir = config.contentDir || DEFAULT_CONTENT_DIR;
+  const outputFile = config.indexFile || DEFAULT_INDEX_FILE;
+  const stateFile = config.stateFile || DEFAULT_STATE_FILE;
+
+  const state = loadState(stateFile);
   const index = [];
   const indexTimestamp = new Date().toISOString();
-  const files = fs.readdirSync(CONTENT_DIR).filter(f => f.endsWith('.md'));
+
+  // Recursively find all markdown files
+  const files = findMarkdownFiles(contentDir);
 
   console.log(`Found ${files.length} markdown files`);
 
-  for (const file of files) {
-    const filePath = path.join(CONTENT_DIR, file);
+  for (const relativePath of files) {
+    const filePath = path.join(contentDir, relativePath);
     const stats = fs.statSync(filePath);
     const mtime = stats.mtimeMs;
 
-    const lastIndexed = state.indexed[file];
+    const lastIndexed = state.indexed[relativePath];
 
     // Re-index if file is new or modified
     if (!lastIndexed || lastIndexed < mtime) {
-      console.log(`Indexing: ${file}`);
-      const indexed = indexFile(file, filePath, indexTimestamp);
+      console.log(`Indexing: ${relativePath}`);
+      const indexed = indexFile(relativePath, filePath, indexTimestamp);
       index.push(indexed);
-      state.indexed[file] = mtime;
+      state.indexed[relativePath] = mtime;
     } else {
-      console.log(`Skipping (unchanged): ${file}`);
+      console.log(`Skipping (unchanged): ${relativePath}`);
       // Load from existing index if available
       try {
-        const existingIndex = JSON.parse(fs.readFileSync(INDEX_FILE, 'utf-8'));
-        const existing = existingIndex.find(item => item.filename === file.replace('.md', ''));
+        const existingIndex = JSON.parse(fs.readFileSync(outputFile, 'utf-8'));
+        const filenameKey = relativePath.replace(/\.md$/, '').replace(/\\/g, '/');
+        const existing = existingIndex.find(item => item.filename === filenameKey);
         if (existing) {
           // Keep existing entry but update timestamp if it doesn't have one
           if (!existing.indexedAt) {
@@ -194,15 +329,15 @@ function buildIndex() {
           index.push(existing);
         } else {
           // File exists in state but not in index, re-index
-          const indexed = indexFile(file, filePath, indexTimestamp);
+          const indexed = indexFile(relativePath, filePath, indexTimestamp);
           index.push(indexed);
-          state.indexed[file] = mtime;
+          state.indexed[relativePath] = mtime;
         }
       } catch (e) {
         // No existing index, re-index
-        const indexed = indexFile(file, filePath, indexTimestamp);
+        const indexed = indexFile(relativePath, filePath, indexTimestamp);
         index.push(indexed);
-        state.indexed[file] = mtime;
+        state.indexed[relativePath] = mtime;
       }
     }
   }
@@ -215,23 +350,29 @@ function buildIndex() {
     }
   }
 
-  // Ensure public directory exists
-  if (!fs.existsSync(path.dirname(INDEX_FILE))) {
-    fs.mkdirSync(path.dirname(INDEX_FILE), { recursive: true });
+  // Ensure output directory exists
+  if (!fs.existsSync(path.dirname(outputFile))) {
+    fs.mkdirSync(path.dirname(outputFile), { recursive: true });
   }
 
   // Save index
-  fs.writeFileSync(INDEX_FILE, JSON.stringify(index, null, 2));
-  console.log(`\nIndex saved to ${INDEX_FILE}`);
+  fs.writeFileSync(outputFile, JSON.stringify(index, null, 2));
+  console.log(`\nIndex saved to ${outputFile}`);
   console.log(`Total indexed pages: ${index.length}`);
 
   // Save state
-  saveState(state);
+  saveState(state, stateFile);
 }
 
 // Run the indexer
 if (require.main === module) {
-  buildIndex();
+  try {
+    const config = parseArguments(process.argv);
+    buildIndex(config);
+  } catch (error) {
+    console.error(`Error: ${error.message}\n`);
+    process.exit(1);
+  }
 }
 
 // Export for programmatic use

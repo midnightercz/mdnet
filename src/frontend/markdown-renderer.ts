@@ -1,5 +1,6 @@
 import MarkdownIt from 'markdown-it';
 import * as yaml from 'js-yaml';
+import markdownItAnchor from 'markdown-it-anchor';
 
 // Create markdown-it instance
 const md = new MarkdownIt({
@@ -26,7 +27,9 @@ function wikiLinksPlugin(md: MarkdownIt) {
     content = content.replace(wikiLinkPattern, (match, target, pipe, displayText) => {
       const linkTarget = target.trim();
       const linkText = displayText ? displayText.trim() : linkTarget;
-      return `<a href="#/${encodeURIComponent(linkTarget)}" class="wiki-link">${linkText}</a>`;
+      // Include source in URL: #/source/page
+      const source = env.currentSource || 'Local';
+      return `<a href="#/${encodeURIComponent(source)}/${encodeURIComponent(linkTarget)}" class="wiki-link">${linkText}</a>`;
     });
 
     // Replace hashtag patterns
@@ -37,6 +40,73 @@ function wikiLinksPlugin(md: MarkdownIt) {
     });
 
     return content;
+  };
+}
+
+// Anchor Links Plugin
+// Converts relative anchor links (#anchor) to absolute paths (/#/page#anchor)
+// Also converts relative .md links to hash-based routes
+function anchorLinksPlugin(md: MarkdownIt) {
+  const defaultLinkOpenRender = md.renderer.rules.link_open || ((tokens, idx, options, env, self) => {
+    return self.renderToken(tokens, idx, options);
+  });
+
+  md.renderer.rules.link_open = (tokens, idx, options, env, self) => {
+    const token = tokens[idx];
+    const hrefIndex = token.attrIndex('href');
+
+    if (hrefIndex >= 0) {
+      const href = token.attrs![hrefIndex][1];
+
+      // Check if this is an anchor-only link (starts with #)
+      if (href.startsWith('#') && env.currentPage && env.currentSource) {
+        // Convert to absolute path: /#/source/currentpage#anchor
+        const newHref = `#/${encodeURIComponent(env.currentSource)}/${env.currentPage}${href}`;
+        token.attrs![hrefIndex][1] = newHref;
+      }
+      // Check if this is a relative .md link
+      else if (href.endsWith('.md') && !href.startsWith('http://') && !href.startsWith('https://') && !href.startsWith('//')) {
+        // Remove .md extension
+        let targetPath = href.replace(/\.md$/, '');
+
+        // If we have a current page, resolve relative path
+        if (env.currentPage) {
+          // Get directory of current page
+          const currentDir = env.currentPage.includes('/')
+            ? env.currentPage.substring(0, env.currentPage.lastIndexOf('/'))
+            : '';
+
+          // Resolve relative path
+          if (targetPath.startsWith('./')) {
+            // ./file.md → same directory
+            targetPath = targetPath.substring(2);
+            targetPath = currentDir ? `${currentDir}/${targetPath}` : targetPath;
+          } else if (targetPath.startsWith('../')) {
+            // ../file.md → parent directory
+            let path = targetPath;
+            let dir = currentDir.split('/');
+
+            while (path.startsWith('../')) {
+              path = path.substring(3);
+              dir.pop();
+            }
+
+            targetPath = dir.length > 0 ? `${dir.join('/')}/${path}` : path;
+          } else if (!targetPath.includes('/')) {
+            // file.md (no slash) → same directory as current page
+            targetPath = currentDir ? `${currentDir}/${targetPath}` : targetPath;
+          }
+          // else: absolute path like infra/file.md → keep as is
+        }
+
+        // Convert to hash-based route with source
+        const source = env.currentSource || 'Local';
+        const newHref = `#/${encodeURIComponent(source)}/${targetPath}`;
+        token.attrs![hrefIndex][1] = newHref;
+      }
+    }
+
+    return defaultLinkOpenRender(tokens, idx, options, env, self);
   };
 }
 
@@ -69,7 +139,16 @@ function customPluginBlocksPlugin(md: MarkdownIt) {
 }
 
 // Register plugins
+md.use(markdownItAnchor, {
+  permalink: false,
+  slugify: (s: string) => s.toLowerCase()
+    .replace(/[^\w\s-]/g, '')
+    .replace(/\s+/g, '-')
+    .replace(/-+/g, '-')
+    .trim()
+});
 md.use(wikiLinksPlugin);
+md.use(anchorLinksPlugin);
 md.use(customPluginBlocksPlugin);
 
 // Parse front matter from markdown content
@@ -191,14 +270,19 @@ function parseColumns(content: string): { columns: ColumnContent; hasColumns: bo
 function renderWithLayout(
   content: string,
   frontMatter: Record<string, any> | null,
+  currentPage: string | undefined,
+  currentSource: string | undefined,
   layoutOverride?: string
 ): string {
   const layout = layoutOverride || frontMatter?.['md-layout'] || 'simple';
   const { columns, hasColumns } = parseColumns(content);
 
+  // Environment for markdown-it renderer
+  const env = { currentPage, currentSource };
+
   // If no columns found, render as simple layout
   if (!hasColumns || layout === 'simple') {
-    return md.render(content);
+    return md.render(content, env);
   }
 
   // Get column configuration from front matter
@@ -225,7 +309,7 @@ function renderWithLayout(
   // Render each column
   const renderedColumns = columnNames.map((name, idx) => {
     const columnContent = columns[name] || '';
-    const renderedContent = md.render(columnContent);
+    const renderedContent = md.render(columnContent, env);
     const width = columnWidths[idx] || '';
     const style = width ? `style="width: ${width}"` : '';
     return `<div class="layout-column" data-column="${name}" ${style}>${renderedContent}</div>`;
@@ -235,11 +319,11 @@ function renderWithLayout(
 }
 
 // Export render function
-export function renderMarkdown(content: string, layoutOverride?: string): string {
+export function renderMarkdown(content: string, currentPage?: string, currentSource?: string, layoutOverride?: string): string {
   const { frontMatter, content: markdownContent } = parseFrontMatter(content);
 
   // Render content with layout
-  let html = renderWithLayout(markdownContent, frontMatter, layoutOverride);
+  let html = renderWithLayout(markdownContent, frontMatter, currentPage, currentSource, layoutOverride);
 
   // If there's front matter, inject it after the first H1
   if (frontMatter && Object.keys(frontMatter).length > 0) {
