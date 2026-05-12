@@ -9,7 +9,7 @@ MDNet is a lightweight markdown wiki with Obsidian-style features.
 - **Property Search**: Search by front matter properties, see [[property-search-example]]
 - **Custom Plugins**: Support for custom code blocks
 - **Front Matter**: YAML metadata in collapsible tables, see [[frontmatter-example]]
-- **Multiple Layouts**: Simple and two-column layouts with responsive design, see [[layout-example]]
+- **Multiple Layouts**: Simple and columns layouts with responsive design, see [[layout-example]]
 - **Theme Toggle**: Switch between Solarized Dark and Light modes, see [[theme-example]]
 - **Lightweight**: No heavy frameworks, minimal bundle size
 - **Fast**: Built with TypeScript and esbuild
@@ -24,7 +24,8 @@ Check out these examples:
 - [[multi-source-routing]] - Multi-source routing and URL structure ⭐
 - [[linking-guide]] - Complete guide to all link types
 - [[frontmatter-example]] - Front matter metadata
-- [[layout-example]] - Two-column layouts
+- [[layout-example]] - Columns layouts
+- [[multi-column-test]] - Multiple column sections test
 - [[page-width-example]] - Custom page widths (60%)
 - [[full-width-example]] - Full width layout (100%)
 - [[hashtag-example]] - Clickable hashtags and tag navigation

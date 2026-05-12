@@ -3,9 +3,13 @@
   "version": "1.0.0",
   "scripts": {
     "build:frontend": "node build.js",
+    "build:frontend:prod": "node build-prod.js",
+    "build:plugins": "node build-plugins.js",
+    "build:plugins:prod": "node build-plugins.js",
     "build:index": "node build-index.js",
     "build:index:remote": "node build-index-remote.js",
-    "build": "npm run build:frontend && npm run build:index",
+    "build": "npm run build:frontend && npm run build:plugins && npm run build:index",
+    "build:prod": "npm run build:frontend:prod && npm run build:plugins:prod && npm run build:index",
     "serve": "npx http-server public -p 3000 --cors"
   },
   "keywords": [],
@@ -22,6 +26,7 @@
     "@types/markdown-it": "^14.1.2",
     "@types/node": "^25.6.0",
     "esbuild": "^0.28.0",
+    "mermaid": "^10.9.0",
     "typescript": "^6.0.3"
   }
 }

@@ -1,9 +1,12 @@
 ---
-md-layout: two-column
+md-layout: columns
 md-layout-columns: col1,col2
 md-page-width: 100%
 ---
-::column[col1]
+
+::md-layout:columns
+
+::md-layout:column[col1]
 
 # Kaufland
 
@@ -57,4 +60,6 @@ md-page-width: 100%
 - [ ] pink tonic 2x
 - [ ] Pepsi zero. 4x
 ### čistící prostředky 
-- [x] cistic koupelen 
+- [x] cistic koupelen
+
+::md-layout:columns-end 

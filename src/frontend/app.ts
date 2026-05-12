@@ -1,4 +1,12 @@
 import { renderMarkdown, getFrontMatter } from './markdown-renderer';
+import { PluginManager } from './plugin-manager';
+
+// Global declarations
+declare global {
+  interface Window {
+    pluginManager: PluginManager;
+  }
+}
 
 // Source configuration interface
 interface Source {
@@ -27,6 +35,10 @@ let searchNextButton: HTMLButtonElement;
 let settingsModalElement: HTMLElement;
 let closeSettingsElement: HTMLElement;
 let addSourceBtnElement: HTMLButtonElement;
+let pluginToggleElement: HTMLElement;
+let pluginModalElement: HTMLElement;
+let closePluginsElement: HTMLElement;
+let pluginListElement: HTMLElement;
 
 // Current page state
 let currentPageContent: string = '';
@@ -232,9 +244,17 @@ async function init() {
   settingsModalElement = document.getElementById('settings-modal')!;
   closeSettingsElement = document.getElementById('close-settings')!;
   addSourceBtnElement = document.getElementById('add-source-btn')! as HTMLButtonElement;
+  pluginToggleElement = document.getElementById('plugin-toggle')!;
+  pluginModalElement = document.getElementById('plugin-modal')!;
+  closePluginsElement = document.getElementById('close-plugins')!;
+  pluginListElement = document.getElementById('plugin-list')!;
 
   // Initialize theme from localStorage
   initTheme();
+
+  // Initialize plugin manager
+  window.pluginManager = new PluginManager();
+  await window.pluginManager.initialize();
 
   // Initialize default source (if needed)
   await initializeDefaultSource();
@@ -315,6 +335,13 @@ async function init() {
   // Set up cancel edit button
   const cancelEditBtn = document.getElementById('cancel-edit-btn')!;
   cancelEditBtn.addEventListener('click', cancelEdit);
+
+  // Set up plugin modal
+  pluginToggleElement.addEventListener('click', openPlugins);
+  closePluginsElement.addEventListener('click', closePlugins);
+  pluginModalElement.addEventListener('click', (e) => {
+    if (e.target === pluginModalElement) closePlugins();
+  });
 
   // Set up theme toggle
   themeToggleElement.addEventListener('click', toggleTheme);
@@ -449,7 +476,7 @@ async function loadPage(sourceName: string, filename: string, anchor?: string) {
 }
 
 // Render the current page with current layout
-function renderCurrentPage() {
+async function renderCurrentPage() {
   const html = renderMarkdown(currentPageContent, currentPageFilename, currentPageSource, currentLayout);
   contentElement.innerHTML = html;
 
@@ -474,6 +501,9 @@ function renderCurrentPage() {
 
   // Add click handlers to hashtags
   attachHashtagHandlers();
+
+  // Render plugin blocks - wait for plugins to be ready
+  await renderPluginBlocks();
 }
 
 // Attach click handlers to hashtag links
@@ -520,10 +550,10 @@ function toggleLayout() {
 
   if (!currentLayout) {
     // Currently using default layout, switch to the other
-    currentLayout = defaultLayout === 'simple' ? 'two-column' : 'simple';
+    currentLayout = defaultLayout === 'simple' ? 'columns' : 'simple';
   } else if (currentLayout === defaultLayout) {
     // Currently at default, switch to the other
-    currentLayout = defaultLayout === 'simple' ? 'two-column' : 'simple';
+    currentLayout = defaultLayout === 'simple' ? 'columns' : 'simple';
   } else {
     // Currently overridden, go back to default
     currentLayout = undefined;
@@ -559,6 +589,11 @@ function toggleTheme() {
   const isLight = document.body.classList.toggle('light-theme');
   localStorage.setItem('theme', isLight ? 'light' : 'dark');
   updateThemeButton(isLight);
+
+  // Re-render plugin blocks after theme changes (with a small delay to let plugins update)
+  setTimeout(() => {
+    renderPluginBlocks();
+  }, 100);
 }
 
 // Update theme button icon and title
@@ -841,6 +876,152 @@ function escapeHtml(text: string): string {
   const div = document.createElement('div');
   div.textContent = text;
   return div.innerHTML;
+}
+
+// Plugin Management Functions
+
+function openPlugins() {
+  pluginModalElement.classList.add('active');
+  renderPluginList();
+}
+
+function closePlugins() {
+  pluginModalElement.classList.remove('active');
+}
+
+function renderPluginList() {
+  if (!window.pluginManager) {
+    pluginListElement.innerHTML = '<div class="plugin-empty-state">Plugin manager not initialized</div>';
+    return;
+  }
+
+  const plugins = window.pluginManager.getPluginList();
+
+  if (plugins.length === 0) {
+    pluginListElement.innerHTML = `
+      <div class="plugin-empty-state">
+        No plugins available.
+        Install a remote plugin or add plugins to src/plugins/ and rebuild.
+      </div>
+    `;
+    return;
+  }
+
+  pluginListElement.innerHTML = plugins.map(plugin => {
+    const enabled = window.pluginManager.isEnabled(plugin.manifest.id);
+    return `
+      <div class="plugin-item ${enabled ? 'enabled' : 'disabled'}">
+        <div class="plugin-item-icon">${plugin.manifest.icon || '🔌'}</div>
+        <div class="plugin-item-info">
+          <div class="plugin-item-name">${escapeHtml(plugin.manifest.name)}</div>
+          <div class="plugin-item-description">${escapeHtml(plugin.manifest.description)}</div>
+          <div class="plugin-item-meta">
+            v${escapeHtml(plugin.manifest.version)} • ${escapeHtml(plugin.manifest.author)}
+            ${plugin.manifest.triggers ? ` • Triggers: ${plugin.manifest.triggers.join(', ')}` : ''}
+          </div>
+        </div>
+        <div class="plugin-item-actions">
+          <label class="plugin-toggle">
+            <input type="checkbox"
+                   class="plugin-toggle-checkbox"
+                   data-plugin="${plugin.manifest.id}"
+                   ${enabled ? 'checked' : ''}>
+            <span class="plugin-toggle-slider"></span>
+          </label>
+        </div>
+      </div>
+    `;
+  }).join('');
+
+  // Attach toggle handlers
+  pluginListElement.querySelectorAll('.plugin-toggle-checkbox').forEach(checkbox => {
+    checkbox.addEventListener('change', async (e) => {
+      const pluginId = (e.target as HTMLInputElement).getAttribute('data-plugin')!;
+      const enabled = (e.target as HTMLInputElement).checked;
+
+      try {
+        if (enabled) {
+          await window.pluginManager.enablePlugin(pluginId);
+        } else {
+          await window.pluginManager.disablePlugin(pluginId);
+        }
+
+        // Re-render the current page to show plugin changes
+        renderCurrentPage();
+      } catch (error: any) {
+        console.error(`Failed to ${enabled ? 'enable' : 'disable'} plugin ${pluginId}:`, error);
+        alert(`Failed to ${enabled ? 'enable' : 'disable'} plugin: ${error.message}`);
+        // Revert checkbox state
+        (e.target as HTMLInputElement).checked = !enabled;
+      }
+
+      renderPluginList(); // Re-render list
+    });
+  });
+}
+
+async function renderPluginBlocks(): Promise<void> {
+  if (!window.pluginManager) {
+    console.warn('Plugin manager not initialized');
+    return;
+  }
+
+  const pluginBlocks = contentElement.querySelectorAll('.plugin-block[data-has-plugin="true"]');
+
+  for (const block of pluginBlocks) {
+    const language = block.getAttribute('data-plugin');
+    const blockId = block.getAttribute('data-block-id');
+    const content = block.getAttribute('data-content');
+
+    if (!language || !blockId || !content) continue;
+
+    // Map language trigger to actual plugin ID
+    const pluginId = window.pluginManager.getPluginIdForLanguage(language);
+
+    if (!pluginId) {
+      // Plugin not found or not enabled
+      const renderArea = block.querySelector('.plugin-render-area');
+      if (renderArea) {
+        renderArea.innerHTML = `<div class="plugin-disabled-message">
+          No enabled plugin found for language "${escapeHtml(language)}".
+        </div>`;
+      }
+      continue;
+    }
+
+    try {
+      await window.pluginManager.renderBlock(pluginId, blockId, content, language);
+    } catch (error: any) {
+      console.error(`Failed to render plugin block ${blockId}:`, error);
+      const renderArea = block.querySelector('.plugin-render-area');
+      if (renderArea) {
+        renderArea.innerHTML = `<div class="plugin-error">
+          <strong>Error rendering plugin:</strong> ${escapeHtml(error.message)}
+        </div>`;
+      }
+    }
+  }
+
+  // Attach enable plugin click handlers
+  attachEnablePluginHandlers();
+}
+
+function attachEnablePluginHandlers() {
+  contentElement.querySelectorAll('.enable-plugin-link').forEach(link => {
+    link.addEventListener('click', async (e) => {
+      e.preventDefault();
+      const pluginId = (e.target as HTMLElement).getAttribute('data-plugin');
+      if (pluginId) {
+        try {
+          await window.pluginManager.enablePlugin(pluginId);
+          renderCurrentPage(); // Re-render to show enabled plugin
+        } catch (error: any) {
+          console.error(`Failed to enable plugin ${pluginId}:`, error);
+          alert(`Failed to enable plugin: ${error.message}`);
+        }
+      }
+    });
+  });
 }
 
 // Start the application when DOM is ready

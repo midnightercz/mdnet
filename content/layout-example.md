@@ -1,15 +1,17 @@
 ---
 title: Layout Example
-md-layout: two-column
+md-layout: columns
 md-layout-columns: main,sidebar
 md-layout-columns-width: 65%,35%
 ---
 
-# Two-Column Layout Example
+# Columns Layout Example
 
-This page demonstrates the two-column layout feature in MDNet.
+This page demonstrates the columns layout feature in MDNet.
 
-::column[main]
+::md-layout:columns
+
+::md-layout:column[main]
 
 ## Main Content Area
 
@@ -17,7 +19,7 @@ This is the main content column. It takes up 65% of the width as specified in th
 
 ### Features
 
-The two-column layout supports:
+The columns layout supports:
 
 - **Custom column names** - Define any column names you want
 - **Configurable widths** - Set specific widths for each column using `md-layout-columns-width`
@@ -27,24 +29,28 @@ The two-column layout supports:
 
 ### How It Works
 
-Content is divided using the `::column[name]` marker:
+Content is divided using the `::md-layout:column[name]` marker, wrapped in layout boundaries:
 
 ```markdown
-::column[main]
+::md-layout:columns
+
+::md-layout:column[main]
 Main content here...
 
-::column[sidebar]
+::md-layout:column[sidebar]
 Sidebar content here...
 
-::column[main]
+::md-layout:column[main]
 More main content (columns can interleave)
+
+::md-layout:columns-end
 ```
 
 ### Multiple Sections
 
-You can have multiple `::column[main]` blocks throughout your document. They will all be aggregated into the same column.
+You can have multiple `::md-layout:column[main]` blocks throughout your document. They will all be aggregated into the same column.
 
-This allows you to structure your content naturally while maintaining the two-column layout.
+This allows you to structure your content naturally while maintaining the column layout.
 
 ### Navigation
 
@@ -54,7 +60,7 @@ Check out:
 - [[frontmatter-example|Front matter]]
 - [[features|Features]]
 
-::column[sidebar]
+::md-layout:column[sidebar]
 
 ## Sidebar
 
@@ -62,7 +68,7 @@ This is the sidebar column (35% width).
 
 ### Quick Info
 
-**Layout**: Two-column  
+**Layout**: Columns  
 **Main width**: 65%  
 **Sidebar width**: 35%
 
@@ -85,7 +91,7 @@ Use the layout toggle button (☰) in the top-right corner to switch between sim
 - [[features]]
 - [[frontmatter-example]]
 
-::column[main]
+::md-layout:column[main]
 
 ## Back to Main
 
@@ -94,9 +100,11 @@ This section is also in the main column, demonstrating that columns can have mul
 ### Front Matter Configuration
 
 ```yaml
-md-layout: two-column
+md-layout: columns
 md-layout-columns: main,sidebar
 md-layout-columns-width: 65%,35%
 ```
 
 The `md-` prefix is required for all MDNet-specific properties to avoid conflicts with other systems.
+
+::md-layout:columns-end

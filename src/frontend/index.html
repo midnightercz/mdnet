@@ -213,6 +213,236 @@
       border-radius: 0 0 6px 6px;
       color: var(--text-primary);
     }
+    .plugin-name {
+      display: inline-block;
+    }
+    .plugin-status {
+      color: var(--green);
+      font-size: 0.8em;
+      margin-left: 8px;
+    }
+    .plugin-status-disabled {
+      color: var(--text-secondary);
+      font-size: 0.8em;
+      margin-left: 8px;
+    }
+    .plugin-render-area {
+      /* Container for dynamically rendered content */
+    }
+    .plugin-disabled-message {
+      padding: 20px;
+      text-align: center;
+      color: var(--text-secondary);
+    }
+    .plugin-disabled-message .enable-plugin-link {
+      color: var(--blue);
+      text-decoration: underline;
+      cursor: pointer;
+    }
+    .plugin-disabled-message .enable-plugin-link:hover {
+      color: var(--green);
+    }
+    .plugin-error {
+      padding: 15px;
+      background: var(--red);
+      color: var(--base3);
+      border-radius: 4px;
+      margin: 10px 0;
+    }
+    .mermaid-diagram {
+      padding: 10px;
+      text-align: center;
+    }
+    .mermaid-diagram svg {
+      max-width: 100%;
+      height: auto;
+    }
+
+    /* Plugin Manager Modal */
+    #plugin-modal {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: rgba(0, 0, 0, 0.7);
+      display: none;
+      align-items: flex-start;
+      justify-content: center;
+      z-index: 2000;
+      padding-top: 80px;
+    }
+    #plugin-modal.active {
+      display: flex;
+    }
+    .plugin-container {
+      background: var(--bg-primary);
+      border: 2px solid var(--border-color);
+      border-radius: 8px;
+      width: 90%;
+      max-width: 800px;
+      max-height: 80vh;
+      display: flex;
+      flex-direction: column;
+      box-shadow: 0 10px 40px rgba(0, 0, 0, 0.5);
+    }
+    .plugin-header {
+      padding: 20px;
+      border-bottom: 1px solid var(--border-color);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      background: var(--bg-primary);
+    }
+    .plugin-header h2 {
+      color: var(--orange);
+      font-size: 1.5em;
+      margin: 0;
+    }
+    .plugin-content {
+      flex: 1;
+      overflow-y: auto;
+      padding: 20px;
+      background: var(--bg-primary);
+      border-radius: 0 0 6px 6px;
+    }
+    .plugin-list {
+      margin-bottom: 30px;
+    }
+    .plugin-item {
+      display: flex;
+      align-items: center;
+      gap: 15px;
+      padding: 15px;
+      margin-bottom: 10px;
+      background: var(--bg-secondary);
+      border: 2px solid var(--border-color);
+      border-radius: 8px;
+      transition: border-color 0.2s;
+    }
+    .plugin-item.enabled {
+      border-color: var(--green);
+    }
+    .plugin-item-icon {
+      font-size: 2em;
+      width: 50px;
+      height: 50px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: var(--bg-primary);
+      border-radius: 8px;
+    }
+    .plugin-item-info {
+      flex: 1;
+    }
+    .plugin-item-name {
+      font-size: 1.1em;
+      font-weight: 600;
+      color: var(--yellow);
+      margin-bottom: 4px;
+    }
+    .plugin-item-description {
+      color: var(--text-primary);
+      margin-bottom: 4px;
+    }
+    .plugin-item-meta {
+      font-size: 0.85em;
+      color: var(--text-secondary);
+    }
+    .plugin-item-actions {
+      display: flex;
+      gap: 10px;
+    }
+    .plugin-toggle {
+      position: relative;
+      display: inline-block;
+      width: 50px;
+      height: 26px;
+    }
+    .plugin-toggle-checkbox {
+      opacity: 0;
+      width: 0;
+      height: 0;
+    }
+    .plugin-toggle-slider {
+      position: absolute;
+      cursor: pointer;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background-color: var(--bg-secondary);
+      border: 2px solid var(--border-color);
+      transition: 0.3s;
+      border-radius: 26px;
+    }
+    .plugin-toggle-slider:before {
+      position: absolute;
+      content: "";
+      height: 18px;
+      width: 18px;
+      left: 2px;
+      bottom: 2px;
+      background-color: var(--text-secondary);
+      transition: 0.3s;
+      border-radius: 50%;
+    }
+    .plugin-toggle-checkbox:checked + .plugin-toggle-slider {
+      background-color: var(--green);
+      border-color: var(--green);
+    }
+    .plugin-toggle-checkbox:checked + .plugin-toggle-slider:before {
+      transform: translateX(24px);
+      background-color: var(--bg-primary);
+    }
+    .plugin-empty-state {
+      padding: 40px;
+      text-align: center;
+      color: var(--text-secondary);
+    }
+    .plugin-install-section {
+      padding: 20px;
+      background: var(--bg-secondary);
+      border: 1px solid var(--border-color);
+      border-radius: 8px;
+    }
+    .plugin-install-section h3 {
+      color: var(--orange);
+      margin-bottom: 15px;
+    }
+    .plugin-install-section input {
+      width: 100%;
+      padding: 10px;
+      margin-bottom: 10px;
+      background: var(--bg-primary);
+      color: var(--text-primary);
+      border: 1px solid var(--border-color);
+      border-radius: 4px;
+      font-family: 'Consolas', 'Monaco', 'Courier New', monospace;
+    }
+    .plugin-install-section input:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+    }
+    .plugin-install-section button {
+      background: var(--blue);
+      color: var(--bg-primary);
+      border: none;
+      padding: 10px 20px;
+      border-radius: 4px;
+      cursor: pointer;
+      font-family: 'Consolas', 'Monaco', 'Courier New', monospace;
+      font-weight: 600;
+      transition: background 0.2s;
+    }
+    .plugin-install-section button:hover:not(:disabled) {
+      background: var(--green);
+    }
+    .plugin-install-section button:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+    }
 
     /* Front matter */
     .front-matter {
@@ -295,7 +525,7 @@
     .layout-container {
       width: 100%;
     }
-    .layout-container[data-layout="two-column"] {
+    .layout-container[data-layout="columns"] {
       display: flex;
       gap: 30px;
       align-items: flex-start;
@@ -321,7 +551,7 @@
         font-size: 1em;
         min-width: 34px;
       }
-      .layout-container[data-layout="two-column"] {
+      .layout-container[data-layout="columns"] {
         flex-direction: column;
         gap: 20px;
       }
@@ -631,6 +861,7 @@
 <body>
   <div class="toggle-buttons">
     <button id="search-toggle" title="Search">🔍</button>
+    <button id="plugin-toggle" title="Plugins">🔌</button>
     <button id="settings-toggle" title="Settings">⚙</button>
     <button id="theme-toggle" title="Toggle theme">☀</button>
     <button id="layout-toggle" title="Toggle layout">|||</button>
@@ -678,6 +909,26 @@
             <button id="add-source-btn">Add Source</button>
             <button id="cancel-edit-btn" style="display: none;">Cancel</button>
           </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Plugin Manager Modal -->
+  <div id="plugin-modal">
+    <div class="plugin-container">
+      <div class="plugin-header">
+        <h2>Plugin Manager</h2>
+        <button id="close-plugins" class="close-button">×</button>
+      </div>
+      <div class="plugin-content">
+        <div class="plugin-list" id="plugin-list">
+          <!-- Dynamically populated -->
+        </div>
+        <div class="plugin-install-section">
+          <h3>Install Remote Plugin</h3>
+          <input type="url" id="remote-plugin-url" placeholder="Plugin URL..." disabled>
+          <button id="install-remote-plugin" disabled>Install (Coming Soon)</button>
         </div>
       </div>
     </div>

@@ -13,15 +13,15 @@ fs.copyFileSync(
   path.join(__dirname, 'public/index.html')
 );
 
-// Bundle frontend TypeScript
+// Bundle frontend TypeScript (development build with sourcemaps)
 esbuild.build({
   entryPoints: ['src/frontend/app.ts'],
   bundle: true,
-  minify: true,
+  minify: false, // Easier debugging in dev mode
   sourcemap: true,
   target: ['es2020'],
   outfile: 'public/app.js',
   format: 'iife',
 }).then(() => {
-  console.log('Frontend built successfully');
+  console.log('Development build completed successfully');
 }).catch(() => process.exit(1));

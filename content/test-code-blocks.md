@@ -1,5 +1,5 @@
 ---
-md-layout: two-column
+md-layout: columns
 md-layout-columns: left,right
 ---
 
@@ -7,31 +7,35 @@ md-layout-columns: left,right
 
 This page tests that column markers inside code blocks are not parsed.
 
-::column[left]
+::md-layout:columns
+
+::md-layout:column[left]
 
 ## Left Column
 
 This shows example syntax in a code block:
 
 ```markdown
-::column[main]
+::md-layout:column[main]
 Main content here...
 
-::column[sidebar]
+::md-layout:column[sidebar]
 Sidebar content here...
 ```
 
 The above markers should be displayed as code, not parsed as actual columns.
 
-::column[right]
+::md-layout:column[right]
 
 ## Right Column
 
 More code examples:
 
 ```
-::column[test]
+::md-layout:column[test]
 This should also be ignored
 ```
 
 And this is actual right column content.
+
+::md-layout:columns-end

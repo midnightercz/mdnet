@@ -127,9 +127,25 @@ function customPluginBlocksPlugin(md: MarkdownIt) {
     if (langName && !standardLanguages.includes(langName.toLowerCase())) {
       // This is a custom plugin block
       const content = token.content;
-      return `<div class="plugin-block" data-plugin="${langName}">
-  <div class="plugin-header">Plugin: ${langName}</div>
-  <pre class="plugin-content">${md.utils.escapeHtml(content)}</pre>
+
+      // Generate unique block ID
+      const blockId = `plugin-block-${Math.random().toString(36).substr(2, 9)}`;
+
+      // Check if a plugin is available for this language
+      const hasPlugin = (window as any).pluginManager?.hasPluginForLanguage(langName) || false;
+
+      return `<div class="plugin-block"
+                   data-plugin="${langName}"
+                   data-block-id="${blockId}"
+                   data-content="${md.utils.escapeHtml(content)}"
+                   data-has-plugin="${hasPlugin}">
+  <div class="plugin-header">
+    <span class="plugin-name">Plugin: ${langName}</span>
+    ${hasPlugin ? '<span class="plugin-status">●</span>' : '<span class="plugin-status-disabled">○</span>'}
+  </div>
+  <div class="plugin-render-area" id="${blockId}">
+    <pre class="plugin-content">${md.utils.escapeHtml(content)}</pre>
+  </div>
 </div>`;
     }
 
@@ -203,6 +219,13 @@ interface ColumnContent {
   [columnName: string]: string;
 }
 
+interface ParseColumnsResult {
+  columns: ColumnContent;
+  hasColumns: boolean;
+  beforeContent: string;
+  afterContent: string;
+}
+
 // Extract code blocks and replace with placeholders
 function maskCodeBlocks(content: string): { masked: string; blocks: string[] } {
   const blocks: string[] = [];
@@ -236,34 +259,25 @@ function unmaskCodeBlocks(content: string, blocks: string[]): string {
   return restored;
 }
 
-function parseColumns(content: string): { columns: ColumnContent; hasColumns: boolean } {
-  // Mask code blocks to prevent parsing column markers inside them
+function parseColumns(content: string): ParseColumnsResult {
+  console.log('[parseColumns] Starting to parse columns...');
+  // This function now just checks if there are any column markers
+  // The actual rendering with multiple sections is handled in renderWithLayout
   const { masked, blocks } = maskCodeBlocks(content);
 
-  const columnRegex = /^::column\[([^\]]+)\]\s*$/gm;
-  const matches = [...masked.matchAll(columnRegex)];
+  // Check for layout boundaries
+  const layoutStartRegex = /^::md-layout:columns\s*$/gm;
+  const startMatches = [...masked.matchAll(layoutStartRegex)];
 
-  if (matches.length === 0) {
-    return { columns: {}, hasColumns: false };
+  console.log('[parseColumns] Found', startMatches.length, 'column section(s)');
+
+  if (startMatches.length === 0) {
+    console.log('[parseColumns] No layout markers found');
+    return { columns: {}, hasColumns: false, beforeContent: '', afterContent: '' };
   }
 
-  const columns: ColumnContent = {};
-  const parts = masked.split(columnRegex);
-
-  // parts[0] is content before first ::column marker
-  // After that, pattern is: [columnName, content, columnName, content, ...]
-  for (let i = 1; i < parts.length; i += 2) {
-    const columnName = parts[i].trim();
-    const columnContent = parts[i + 1] || '';
-
-    if (!columns[columnName]) {
-      columns[columnName] = '';
-    }
-    // Restore code blocks in this column's content
-    columns[columnName] += unmaskCodeBlocks(columnContent, blocks);
-  }
-
-  return { columns, hasColumns: true };
+  // For now, return hasColumns true - rendering will handle multiple sections
+  return { columns: {}, hasColumns: true, beforeContent: '', afterContent: '' };
 }
 
 // Render content with layout
@@ -274,30 +288,73 @@ function renderWithLayout(
   currentSource: string | undefined,
   layoutOverride?: string
 ): string {
+  console.log('[renderWithLayout] Starting render...');
   const layout = layoutOverride || frontMatter?.['md-layout'] || 'simple';
-  const { columns, hasColumns } = parseColumns(content);
+  console.log('[renderWithLayout] Layout:', layout);
+
+  const { hasColumns } = parseColumns(content);
+  console.log('[renderWithLayout] hasColumns:', hasColumns);
 
   // Environment for markdown-it renderer
   const env = { currentPage, currentSource };
 
   // If no columns found, render as simple layout
   if (!hasColumns || layout === 'simple') {
+    console.log('[renderWithLayout] Rendering as simple layout');
     return md.render(content, env);
   }
+
+  console.log('[renderWithLayout] Rendering with column layout(s)!');
+
+  // Mask code blocks first
+  const { masked, blocks } = maskCodeBlocks(content);
+
+  // Find all column section boundaries
+  const layoutStartRegex = /^::md-layout:columns\s*$/gm;
+  const layoutEndRegex = /^::md-layout:columns-end\s*$/gm;
+
+  const startMatches = [...masked.matchAll(layoutStartRegex)];
+  const endMatches = [...masked.matchAll(layoutEndRegex)];
+
+  console.log('[renderWithLayout] Found', startMatches.length, 'start markers and', endMatches.length, 'end markers');
+
+  if (startMatches.length !== endMatches.length) {
+    console.warn('[renderWithLayout] Mismatched column markers! Falling back to simple render');
+    return md.render(content, env);
+  }
+
+  // Build sections array: [content, type] where type is 'normal' or 'columns'
+  const sections: Array<{ content: string; type: 'normal' | 'columns' }> = [];
+  let lastIndex = 0;
+
+  for (let i = 0; i < startMatches.length; i++) {
+    const startMatch = startMatches[i];
+    const endMatch = endMatches[i];
+
+    // Content before this column section
+    if (startMatch.index > lastIndex) {
+      const normalContent = masked.substring(lastIndex, startMatch.index);
+      sections.push({ content: unmaskCodeBlocks(normalContent, blocks), type: 'normal' });
+    }
+
+    // Column section content
+    const columnContent = masked.substring(startMatch.index + startMatch[0].length, endMatch.index);
+    sections.push({ content: columnContent, type: 'columns' });
+
+    lastIndex = endMatch.index + endMatch[0].length;
+  }
+
+  // Content after last column section
+  if (lastIndex < masked.length) {
+    const normalContent = masked.substring(lastIndex);
+    sections.push({ content: unmaskCodeBlocks(normalContent, blocks), type: 'normal' });
+  }
+
+  console.log('[renderWithLayout] Built', sections.length, 'sections');
 
   // Get column configuration from front matter
   const columnsConfig = frontMatter?.['md-layout-columns'];
   const columnsWidth = frontMatter?.['md-layout-columns-width'];
-
-  let columnNames: string[];
-  if (typeof columnsConfig === 'string') {
-    columnNames = columnsConfig.split(',').map(c => c.trim());
-  } else if (Array.isArray(columnsConfig)) {
-    columnNames = columnsConfig;
-  } else {
-    // Use columns in order they appear
-    columnNames = Object.keys(columns);
-  }
 
   let columnWidths: string[] = [];
   if (typeof columnsWidth === 'string') {
@@ -306,16 +363,59 @@ function renderWithLayout(
     columnWidths = columnsWidth;
   }
 
-  // Render each column
-  const renderedColumns = columnNames.map((name, idx) => {
-    const columnContent = columns[name] || '';
-    const renderedContent = md.render(columnContent, env);
-    const width = columnWidths[idx] || '';
-    const style = width ? `style="width: ${width}"` : '';
-    return `<div class="layout-column" data-column="${name}" ${style}>${renderedContent}</div>`;
-  }).join('\n');
+  // Render all sections
+  const renderedSections = sections.map((section, sectionIdx) => {
+    if (section.type === 'normal') {
+      // Render normal content
+      return md.render(section.content, env);
+    } else {
+      // Parse and render column section
+      const columnRegex = /^::md-layout:column\[([^\]]+)\]\s*$/gm;
+      const matches = [...section.content.matchAll(columnRegex)];
 
-  return `<div class="layout-container" data-layout="${layout}">${renderedColumns}</div>`;
+      if (matches.length === 0) {
+        console.warn('[renderWithLayout] Column section has no column markers');
+        return md.render(unmaskCodeBlocks(section.content, blocks), env);
+      }
+
+      const columns: ColumnContent = {};
+      const parts = section.content.split(columnRegex);
+
+      for (let i = 1; i < parts.length; i += 2) {
+        const columnName = parts[i].trim();
+        const columnContent = parts[i + 1] || '';
+
+        if (!columns[columnName]) {
+          columns[columnName] = '';
+        }
+        columns[columnName] += unmaskCodeBlocks(columnContent, blocks);
+      }
+
+      // Determine column names
+      let columnNames: string[];
+      if (typeof columnsConfig === 'string') {
+        columnNames = columnsConfig.split(',').map(c => c.trim());
+      } else if (Array.isArray(columnsConfig)) {
+        columnNames = columnsConfig;
+      } else {
+        columnNames = Object.keys(columns);
+      }
+
+      // Render columns
+      const renderedColumns = columnNames.map((name, idx) => {
+        const columnContent = columns[name] || '';
+        const renderedContent = md.render(columnContent, env);
+        const width = columnWidths[idx] || '';
+        const style = width ? `style="width: ${width}"` : '';
+        return `<div class="layout-column" data-column="${name}" ${style}>${renderedContent}</div>`;
+      }).join('\n');
+
+      return `<div class="layout-container" data-layout="${layout}">${renderedColumns}</div>`;
+    }
+  });
+
+  console.log('[renderWithLayout] Rendered all sections, joining...');
+  return renderedSections.join('\n');
 }
 
 // Export render function
