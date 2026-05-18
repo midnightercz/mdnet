@@ -20,8 +20,11 @@ esbuild.build({
   minify: false, // Easier debugging in dev mode
   sourcemap: true,
   target: ['es2020'],
-  outfile: 'public/app.js',
-  format: 'iife',
+  splitting: true,        // Enable code splitting
+  format: 'esm',          // Required for splitting (changed from 'iife')
+  outdir: 'public/js',    // Output all JS to /public/js/
+  entryNames: 'app',      // Keep main file as app.js
+  chunkNames: '[name]-[hash]', // Lazy-loaded chunks in same directory
 }).then(() => {
   console.log('Development build completed successfully');
 }).catch(() => process.exit(1));

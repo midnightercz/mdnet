@@ -298,9 +298,25 @@ function renderWithLayout(
   // Environment for markdown-it renderer
   const env = { currentPage, currentSource };
 
-  // If no columns found, render as simple layout
-  if (!hasColumns || layout === 'simple') {
-    console.log('[renderWithLayout] Rendering as simple layout');
+  // If no columns found, render based on layout type
+  if (!hasColumns) {
+    console.log('[renderWithLayout] No columns found');
+    if (layout === 'simple') {
+      console.log('[renderWithLayout] Rendering as simple layout');
+      return md.render(content, env);
+    } else if (layout === 'center') {
+      console.log('[renderWithLayout] Rendering as center layout (no columns)');
+      const renderedContent = md.render(content, env);
+      return `<div class="layout-container" data-layout="center"><div class="layout-column">${renderedContent}</div></div>`;
+    } else {
+      // Default to simple for unknown layouts
+      return md.render(content, env);
+    }
+  }
+
+  // If layout is simple and we have columns, ignore the layout markers
+  if (layout === 'simple') {
+    console.log('[renderWithLayout] Rendering as simple layout (ignoring column markers)');
     return md.render(content, env);
   }
 

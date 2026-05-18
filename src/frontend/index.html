@@ -89,6 +89,11 @@
       margin-left: 5px;
     }
     #content { width: 100%; }
+    #content:has(.layout-container[data-layout="center"]) {
+      min-height: 80vh;
+      display: flex;
+      flex-direction: column;
+    }
     .loading { color: var(--text-secondary); font-style: italic; }
 
     /* Markdown styling */
@@ -248,6 +253,18 @@
       color: var(--base3);
       border-radius: 4px;
       margin: 10px 0;
+    }
+    .plugin-loading {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 2rem;
+      color: var(--text-secondary);
+      font-style: italic;
+    }
+    .plugin-loading::before {
+      content: "⏳ ";
+      margin-right: 0.5rem;
     }
     .mermaid-diagram {
       padding: 10px;
@@ -451,6 +468,12 @@
       border-radius: 4px;
       background: var(--bg-secondary);
     }
+    body.hide-metadata .front-matter {
+      display: none;
+    }
+    body.hide-metadata #source-badge {
+      display: none !important;
+    }
     .front-matter summary {
       padding: 8px 15px;
       cursor: pointer;
@@ -493,16 +516,51 @@
       color: var(--text-primary);
     }
 
-    /* Toggle buttons */
-    .toggle-buttons {
+    /* Toggle buttons panel */
+    .controls-panel {
       position: fixed;
       top: 20px;
       right: 20px;
-      display: flex;
-      gap: 10px;
       z-index: 1000;
     }
-    #layout-toggle, #theme-toggle, #search-toggle {
+    .panel-toggle-btn {
+      background: var(--bg-secondary);
+      color: var(--yellow);
+      border: 1px solid var(--border-color);
+      padding: 6px 10px;
+      border-radius: 4px;
+      cursor: pointer;
+      font-family: 'Consolas', 'Monaco', 'Courier New', monospace;
+      font-size: 1.2em;
+      font-weight: 600;
+      transition: background 0.2s, color 0.2s, transform 0.3s;
+      min-width: 32px;
+      text-align: center;
+      float: right;
+      margin-bottom: 10px;
+    }
+    .panel-toggle-btn:hover {
+      background: var(--blue);
+      color: var(--bg-primary);
+    }
+    .panel-toggle-btn.collapsed {
+      transform: rotate(180deg);
+    }
+    .toggle-buttons {
+      display: flex;
+      gap: 10px;
+      flex-direction: column;
+      align-items: flex-end;
+      max-height: 500px;
+      overflow: hidden;
+      transition: max-height 0.3s ease-out, opacity 0.3s ease-out;
+      opacity: 1;
+    }
+    .toggle-buttons.collapsed {
+      max-height: 0;
+      opacity: 0;
+    }
+    #layout-toggle, #theme-toggle, #search-toggle, #settings-toggle, #plugin-toggle, #metadata-toggle {
       background: var(--bg-secondary);
       color: var(--yellow);
       border: 1px solid var(--border-color);
@@ -516,9 +574,12 @@
       min-width: 38px;
       text-align: center;
     }
-    #layout-toggle:hover, #theme-toggle:hover, #search-toggle:hover {
+    #layout-toggle:hover, #theme-toggle:hover, #search-toggle:hover, #settings-toggle:hover, #plugin-toggle:hover, #metadata-toggle:hover {
       background: var(--blue);
       color: var(--bg-primary);
+    }
+    #metadata-toggle.hidden-metadata {
+      opacity: 0.5;
     }
 
     /* Layout containers */
@@ -533,6 +594,18 @@
     .layout-container[data-layout="simple"] .layout-column {
       width: 100%;
     }
+    .layout-container[data-layout="center"] {
+      display: flex;
+      /*flex-direction: column;*/
+      align-items: center;
+      justify-content: center;
+      flex: 1;
+      text-align: center;
+    }
+    .layout-container[data-layout="center"] .layout-column {
+      width: 100%;
+      max-width: 800px;
+    }
     .layout-column {
       flex: 1;
     }
@@ -542,11 +615,16 @@
       .container {
         padding: 20px;
       }
-      .toggle-buttons {
+      .controls-panel {
         top: 10px;
         right: 10px;
       }
-      #layout-toggle, #theme-toggle {
+      .panel-toggle-btn {
+        padding: 4px 8px;
+        font-size: 1em;
+        min-width: 28px;
+      }
+      #layout-toggle, #theme-toggle, #search-toggle, #settings-toggle, #plugin-toggle, #metadata-toggle {
         padding: 6px 10px;
         font-size: 1em;
         min-width: 34px;
@@ -859,12 +937,16 @@
   </style>
 </head>
 <body>
-  <div class="toggle-buttons">
-    <button id="search-toggle" title="Search">🔍</button>
-    <button id="plugin-toggle" title="Plugins">🔌</button>
-    <button id="settings-toggle" title="Settings">⚙</button>
-    <button id="theme-toggle" title="Toggle theme">☀</button>
-    <button id="layout-toggle" title="Toggle layout">|||</button>
+  <div class="controls-panel">
+    <button id="panel-toggle" class="panel-toggle-btn" title="Toggle controls">▼</button>
+    <div class="toggle-buttons">
+      <button id="search-toggle" title="Search">🔍</button>
+      <button id="plugin-toggle" title="Plugins">🔌</button>
+      <button id="settings-toggle" title="Settings">⚙</button>
+      <button id="metadata-toggle" title="Toggle metadata">ⓘ</button>
+      <button id="theme-toggle" title="Toggle theme">☀</button>
+      <button id="layout-toggle" title="Toggle layout">|||</button>
+    </div>
   </div>
   <div class="container">
     <div id="error"></div>
@@ -934,6 +1016,6 @@
     </div>
   </div>
 
-  <script src="/app.js"></script>
+  <script type="module" src="/js/app.js"></script>
 </body>
 </html>

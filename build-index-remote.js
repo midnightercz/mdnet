@@ -179,7 +179,7 @@ async function main() {
     let index = [];
     let mdFiles = [];
 
-    if (!useCache) {
+    if (!useCache || config.force) {
       console.log('Fetching file tree...');
       let tree;
       if (config.provider === 'github') {

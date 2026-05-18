@@ -39,6 +39,9 @@ let pluginToggleElement: HTMLElement;
 let pluginModalElement: HTMLElement;
 let closePluginsElement: HTMLElement;
 let pluginListElement: HTMLElement;
+let panelToggleElement: HTMLElement;
+let toggleButtonsElement: HTMLElement;
+let metadataToggleElement: HTMLElement;
 
 // Current page state
 let currentPageContent: string = '';
@@ -248,9 +251,21 @@ async function init() {
   pluginModalElement = document.getElementById('plugin-modal')!;
   closePluginsElement = document.getElementById('close-plugins')!;
   pluginListElement = document.getElementById('plugin-list')!;
+  panelToggleElement = document.getElementById('panel-toggle')!;
+  toggleButtonsElement = document.querySelector('.toggle-buttons')!;
+  metadataToggleElement = document.getElementById('metadata-toggle')!;
 
   // Initialize theme from localStorage
   initTheme();
+
+  // Initialize metadata visibility from localStorage
+  initMetadata();
+
+  // Set up panel toggle
+  panelToggleElement.addEventListener('click', togglePanel);
+
+  // Set up metadata toggle
+  metadataToggleElement.addEventListener('click', toggleMetadata);
 
   // Initialize plugin manager
   window.pluginManager = new PluginManager();
@@ -543,20 +558,30 @@ function searchForTag(tag: string) {
   handleSearch();
 }
 
+// Toggle controls panel
+function togglePanel() {
+  const isCollapsed = toggleButtonsElement.classList.toggle('collapsed');
+  panelToggleElement.classList.toggle('collapsed', isCollapsed);
+  panelToggleElement.title = isCollapsed ? 'Show controls' : 'Hide controls';
+}
+
 // Toggle between layouts
 function toggleLayout() {
   const frontMatter = getFrontMatter(currentPageContent);
   const defaultLayout = frontMatter?.['md-layout'] || 'simple';
 
-  if (!currentLayout) {
-    // Currently using default layout, switch to the other
-    currentLayout = defaultLayout === 'simple' ? 'columns' : 'simple';
-  } else if (currentLayout === defaultLayout) {
-    // Currently at default, switch to the other
-    currentLayout = defaultLayout === 'simple' ? 'columns' : 'simple';
-  } else {
-    // Currently overridden, go back to default
+  // Cycle through layouts: simple -> columns -> center -> simple
+  const layouts = ['simple', 'columns', 'center'];
+  const currentEffective = currentLayout || defaultLayout;
+  const currentIndex = layouts.indexOf(currentEffective);
+  const nextIndex = (currentIndex + 1) % layouts.length;
+  const nextLayout = layouts[nextIndex];
+
+  // If next layout is the default, clear override, otherwise set it
+  if (nextLayout === defaultLayout) {
     currentLayout = undefined;
+  } else {
+    currentLayout = nextLayout;
   }
 
   renderCurrentPage();
@@ -569,8 +594,21 @@ function updateLayoutToggle() {
   const defaultLayout = frontMatter?.['md-layout'] || 'simple';
   const effectiveLayout = currentLayout || defaultLayout;
 
-  layoutToggleElement.textContent = effectiveLayout === 'simple' ? '|||' : '□';
-  layoutToggleElement.title = `Switch to ${effectiveLayout === 'simple' ? 'column' : 'simple'} layout`;
+  // Set icon based on current layout
+  const icons: Record<string, string> = {
+    'simple': '|||',
+    'columns': '□',
+    'center': '◯'
+  };
+
+  const nextLayout: Record<string, string> = {
+    'simple': 'columns',
+    'columns': 'center',
+    'center': 'simple'
+  };
+
+  layoutToggleElement.textContent = icons[effectiveLayout] || '|||';
+  layoutToggleElement.title = `Current: ${effectiveLayout} - Click for ${nextLayout[effectiveLayout]}`;
 }
 
 // Initialize theme
@@ -600,6 +638,35 @@ function toggleTheme() {
 function updateThemeButton(isLight: boolean) {
   themeToggleElement.textContent = isLight ? '☾' : '☀';
   themeToggleElement.title = isLight ? 'Switch to dark mode' : 'Switch to light mode';
+}
+
+// Initialize metadata visibility
+function initMetadata() {
+  const hideMetadata = localStorage.getItem('hideMetadata') === 'true';
+  if (hideMetadata) {
+    document.body.classList.add('hide-metadata');
+    updateMetadataButton(true);
+  } else {
+    updateMetadataButton(false);
+  }
+}
+
+// Toggle metadata visibility
+function toggleMetadata() {
+  const hideMetadata = document.body.classList.toggle('hide-metadata');
+  localStorage.setItem('hideMetadata', hideMetadata ? 'true' : 'false');
+  updateMetadataButton(hideMetadata);
+}
+
+// Update metadata button state and title
+function updateMetadataButton(hidden: boolean) {
+  if (hidden) {
+    metadataToggleElement.classList.add('hidden-metadata');
+    metadataToggleElement.title = 'Show metadata';
+  } else {
+    metadataToggleElement.classList.remove('hidden-metadata');
+    metadataToggleElement.title = 'Hide metadata';
+  }
 }
 
 // Show error message
@@ -990,6 +1057,12 @@ async function renderPluginBlocks(): Promise<void> {
     }
 
     try {
+      // Show loading state
+      const renderArea = block.querySelector('.plugin-render-area');
+      if (renderArea) {
+        renderArea.innerHTML = '<div class="plugin-loading">Loading diagram...</div>';
+      }
+
       await window.pluginManager.renderBlock(pluginId, blockId, content, language);
     } catch (error: any) {
       console.error(`Failed to render plugin block ${blockId}:`, error);
