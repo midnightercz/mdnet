@@ -1,0 +1,43 @@
+name: Build Search Index
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - 'content/**'
+      - 'build-index.js'
+      - 'package.json'
+
+jobs:
+  build-index:
+    runs-on: ubuntu-latest
+
+    permissions:
+      contents: write
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build search index
+        run: node build-index.js --input content --output search-index.json
+
+      - name: Commit and push search index
+        run: |
+          git config --local user.email "github-actions[bot]@users.noreply.github.com"
+          git config --local user.name "github-actions[bot]"
+          git add search-index.json
+          git diff --staged --quiet || git commit -m "chore: update search index [skip ci]"
+          git push
