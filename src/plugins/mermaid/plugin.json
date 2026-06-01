@@ -1,0 +1,18 @@
+{
+  "id": "mermaid",
+  "name": "Mermaid Diagrams",
+  "version": "1.0.0",
+  "description": "Renders beautiful diagrams and flowcharts using Mermaid.js",
+  "author": "MDNet Team",
+  "entryPoint": "worker.js",
+  "type": "renderer",
+  "triggers": ["mermaid"],
+  "permissions": [],
+  "defaultEnabled": true,
+  "icon": "📊",
+  "runInMainThread": true,
+  "config": {
+    "theme": "default",
+    "securityLevel": "strict"
+  }
+}

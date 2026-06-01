@@ -5,54 +5,491 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>MDNet - Markdown Wiki</title>
   <style>
-    /* Solarized Color Scheme */
+    /* Theme System */
     :root {
-      --base03: #002b36;
-      --base02: #073642;
-      --base01: #586e75;
-      --base00: #657b83;
-      --base0:  #839496;
-      --base1:  #93a1a1;
-      --base2:  #eee8d5;
-      --base3:  #fdf6e3;
-      --yellow: #b58900;
-      --orange: #cb4b16;
-      --red:    #dc322f;
-      --magenta:#d33682;
-      --violet: #6c71c4;
-      --blue:   #268bd2;
-      --cyan:   #2aa198;
-      --green:  #859900;
+      /* Generic theme variables - will be set by theme classes */
+      --bg-primary: #002b36;
+      --bg-secondary: #073642;
+      --text-primary: #93a1a1;
+      --text-secondary: #586e75;
+      --text-emphasis: #eee8d5;
+      --border-color: #586e75;
+      --accent-yellow: #b58900;
+      --accent-orange: #cb4b16;
+      --accent-red: #dc322f;
+      --accent-magenta: #d33682;
+      --accent-violet: #6c71c4;
+      --accent-blue: #268bd2;
+      --accent-cyan: #2aa198;
+      --accent-green: #859900;
     }
 
-    /* Dark theme (default) */
-    body {
-      --bg-primary: var(--base03);
-      --bg-secondary: var(--base02);
-      --text-primary: var(--base1);
-      --text-secondary: var(--base01);
-      --text-emphasis: var(--base2);
-      --border-color: var(--base01);
+    /* Solarized Dark */
+    body.theme-solarized-dark {
+      --bg-primary: #002b36;
+      --bg-secondary: #073642;
+      --text-primary: #93a1a1;
+      --text-secondary: #586e75;
+      --text-emphasis: #eee8d5;
+      --border-color: #586e75;
+      --accent-yellow: #b58900;
+      --accent-orange: #cb4b16;
+      --accent-red: #dc322f;
+      --accent-magenta: #d33682;
+      --accent-violet: #6c71c4;
+      --accent-blue: #268bd2;
+      --accent-cyan: #2aa198;
+      --accent-green: #859900;
     }
 
-    /* Light theme */
-    body.light-theme {
-      --bg-primary: var(--base3);
-      --bg-secondary: var(--base2);
-      --text-primary: var(--base00);
-      --text-secondary: var(--base1);
-      --text-emphasis: var(--base01);
-      --border-color: var(--base1);
+    /* Solarized Light */
+    body.theme-solarized-light {
+      --bg-primary: #fdf6e3;
+      --bg-secondary: #eee8d5;
+      --text-primary: #657b83;
+      --text-secondary: #93a1a1;
+      --text-emphasis: #586e75;
+      --border-color: #93a1a1;
+      --accent-yellow: #b58900;
+      --accent-orange: #cb4b16;
+      --accent-red: #dc322f;
+      --accent-magenta: #d33682;
+      --accent-violet: #6c71c4;
+      --accent-blue: #268bd2;
+      --accent-cyan: #2aa198;
+      --accent-green: #859900;
+    }
+
+    /* Monokai Dark */
+    body.theme-monokai-dark {
+      --bg-primary: #272822;
+      --bg-secondary: #3e3d32;
+      --text-primary: #f8f8f2;
+      --text-secondary: #75715e;
+      --text-emphasis: #f8f8f2;
+      --border-color: #75715e;
+      --accent-yellow: #e6db74;
+      --accent-orange: #fd971f;
+      --accent-red: #f92672;
+      --accent-magenta: #ae81ff;
+      --accent-violet: #ae81ff;
+      --accent-blue: #66d9ef;
+      --accent-cyan: #a1efe4;
+      --accent-green: #a6e22e;
+    }
+
+    /* Monokai Light */
+    body.theme-monokai-light {
+      --bg-primary: #fafafa;
+      --bg-secondary: #f0f0f0;
+      --text-primary: #272822;
+      --text-secondary: #75715e;
+      --text-emphasis: #272822;
+      --border-color: #d0d0d0;
+      --accent-yellow: #c9b502;
+      --accent-orange: #ff8c00;
+      --accent-red: #e01563;
+      --accent-magenta: #7c3aed;
+      --accent-violet: #7c3aed;
+      --accent-blue: #0891b2;
+      --accent-cyan: #0d9488;
+      --accent-green: #65a30d;
+    }
+
+    /* Gruvbox Dark */
+    body.theme-gruvbox-dark {
+      --bg-primary: #282828;
+      --bg-secondary: #3c3836;
+      --text-primary: #ebdbb2;
+      --text-secondary: #a89984;
+      --text-emphasis: #fbf1c7;
+      --border-color: #665c54;
+      --accent-yellow: #fabd2f;
+      --accent-orange: #fe8019;
+      --accent-red: #fb4934;
+      --accent-magenta: #d3869b;
+      --accent-violet: #b16286;
+      --accent-blue: #83a598;
+      --accent-cyan: #8ec07c;
+      --accent-green: #b8bb26;
+    }
+
+    /* Gruvbox Light */
+    body.theme-gruvbox-light {
+      --bg-primary: #fbf1c7;
+      --bg-secondary: #ebdbb2;
+      --text-primary: #3c3836;
+      --text-secondary: #665c54;
+      --text-emphasis: #282828;
+      --border-color: #928374;
+      --accent-yellow: #b57614;
+      --accent-orange: #af3a03;
+      --accent-red: #cc241d;
+      --accent-magenta: #8f3f71;
+      --accent-violet: #8f3f71;
+      --accent-blue: #076678;
+      --accent-cyan: #427b58;
+      --accent-green: #79740e;
+    }
+
+    /* Farout Dark */
+    body.theme-farout-dark {
+      --bg-primary: #0f0908;
+      --bg-secondary: #1f1311;
+      --text-primary: #E0CCAE;
+      --text-secondary: #6B4035;
+      --text-emphasis: #F2A766;
+      --border-color: #392D2B;
+      --accent-yellow: #f2a766;
+      --accent-orange: #ff9e64;
+      --accent-red: #bf472c;
+      --accent-magenta: #8a4b53;
+      --accent-violet: #a47a7a;
+      --accent-blue: #d47d49;
+      --accent-cyan: #a67458;
+      --accent-green: #a4896f;
+    }
+
+    /* Farout Light (Moon variant) */
+    body.theme-farout-light {
+      --bg-primary: #222436;
+      --bg-secondary: #1e2030;
+      --text-primary: #c8d3f5;
+      --text-secondary: #7a88cf;
+      --text-emphasis: #b4f9f8;
+      --border-color: #3b4261;
+      --accent-yellow: #ffc777;
+      --accent-orange: #ff966c;
+      --accent-red: #ff757f;
+      --accent-magenta: #c099ff;
+      --accent-violet: #fca7ea;
+      --accent-blue: #82aaff;
+      --accent-cyan: #86e1fc;
+      --accent-green: #c3e88d;
     }
 
     * { margin: 0; padding: 0; box-sizing: border-box; }
     body {
       font-family: 'Consolas', 'Monaco', 'Courier New', monospace;
-      line-height: 1.6;
+      line-height: 1.0;
       color: var(--text-primary);
       background: var(--bg-primary);
       transition: background-color 0.3s, color 0.3s;
     }
+
+    /* App Layout - Dock + Content */
+    .app-layout {
+      display: flex;
+      min-height: 100vh;
+      position: relative;
+    }
+
+    /* Dock Toggle Button - floats when dock closed, inline when open */
+    .dock-toggle-btn {
+      background: var(--bg-secondary);
+      border: 2px solid var(--border-color);
+      color: var(--accent-yellow);
+      cursor: pointer;
+      font-family: 'Consolas', 'Monaco', 'Courier New', monospace;
+      font-size: 1.5em;
+      font-weight: 600;
+      padding: 0;
+      width: 38px;
+      height: 38px;
+      border-radius: 4px;
+      transition: background 0.2s, color 0.2s, position 0.2s;
+      flex-shrink: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    /* When dock is closed - float at top left with absolute positioning */
+    .plugin-dock:not(.open) + * .dock-toggle-btn,
+    body:not(:has(.plugin-dock.open)) .dock-toggle-btn {
+      position: absolute;
+      left: 10px;
+      top: 10px;
+      z-index: 3000;
+      box-shadow: 2px 2px 8px rgba(0, 0, 0, 0.3);
+    }
+    /* When dock is open - relative positioning in header */
+    .plugin-dock.open .dock-toggle-btn {
+      position: relative;
+      box-shadow: none;
+    }
+    .dock-toggle-btn:hover {
+      background: var(--accent-blue);
+      color: var(--bg-primary);
+      border-color: var(--accent-blue);
+    }
+    .dock-toggle-btn[data-badge]::after {
+      content: attr(data-badge);
+      position: absolute;
+      top: -8px;
+      right: -8px;
+      background: var(--accent-red);
+      color: var(--bg-primary);
+      font-size: 0.6em;
+      font-weight: bold;
+      padding: 3px 6px;
+      border-radius: 12px;
+      min-width: 20px;
+      text-align: center;
+    }
+
+    /* Plugin Dock */
+    .plugin-dock {
+      width: 0;
+      min-width: 0;
+      max-width: 0;
+      background: var(--bg-secondary);
+      border-right: 0px solid var(--border-color);
+      display: flex;
+      flex-direction: row;
+      position: relative;
+      overflow: hidden;
+      transition: width 0.25s ease, min-width 0.25s ease, max-width 0.25s ease, border-right-width 0s 0.25s;
+    }
+    .plugin-dock.open {
+      width: 400px;
+      min-width: 280px;
+      max-width: calc(100vw - 500px);
+      border-right: 1px solid var(--border-color);
+      transition: width 0.25s ease, border-right-width 0s;
+    }
+
+    .dock-content {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      overflow-y: auto;
+      overflow-x: hidden;
+    }
+    .dock-content::-webkit-scrollbar {
+      width: 8px;
+    }
+    .dock-content::-webkit-scrollbar-track {
+      background: var(--bg-secondary);
+    }
+    .dock-content::-webkit-scrollbar-thumb {
+      background: var(--border-color);
+      border-radius: 4px;
+    }
+    .dock-content::-webkit-scrollbar-thumb:hover {
+      background: var(--text-secondary);
+    }
+
+    /* Dock Resize Handle */
+    .dock-resize-handle {
+      width: 4px;
+      background: transparent;
+      cursor: ew-resize;
+      position: absolute;
+      right: 0;
+      top: 0;
+      bottom: 0;
+      transition: background 0.2s;
+      z-index: 10;
+    }
+    .dock-resize-handle:hover {
+      background: var(--accent-cyan);
+    }
+    .plugin-dock:not(.open) .dock-resize-handle {
+      display: none;
+    }
+
+    /* Dock Sections */
+    .dock-section {
+      border-bottom: 1px solid var(--border-color);
+    }
+    .dock-section-header {
+      padding: 12px 15px;
+      background: var(--bg-primary);
+      cursor: pointer;
+      display: flex;
+      gap: 10px;
+      align-items: center;
+      user-select: none;
+      transition: background 0.2s;
+    }
+    .dock-section-header:hover {
+      background: var(--bg-secondary);
+    }
+    .dock-section-title {
+      font-weight: 600;
+      color: var(--text-emphasis);
+      font-size: 0.9em;
+      flex: 1;
+    }
+    .dock-count {
+      color: var(--text-secondary);
+      font-weight: normal;
+    }
+    .dock-section-toggle {
+      color: var(--text-secondary);
+      font-size: 0.8em;
+      transition: transform 0.15s;
+    }
+    .dock-section-header.collapsed .dock-section-toggle {
+      transform: rotate(-90deg);
+    }
+
+    /* Available Plugins List */
+    .dock-available-list {
+      max-height: 500px;
+      overflow-y: auto;
+      transition: max-height 0.15s ease;
+    }
+    .dock-available-list.collapsed {
+      max-height: 0;
+      overflow: hidden;
+    }
+    .dock-available-section.hidden {
+      display: none;
+    }
+    .dock-available-item {
+      padding: 10px 15px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      cursor: pointer;
+      transition: background 0.2s;
+      border-bottom: 1px solid var(--bg-primary);
+    }
+    .dock-available-item:hover {
+      background: var(--bg-primary);
+    }
+    .dock-available-icon {
+      font-size: 1.3em;
+      flex-shrink: 0;
+    }
+    .dock-available-name {
+      flex: 1;
+      color: var(--text-primary);
+      font-size: 0.9em;
+    }
+
+    /* Active Plugins (Docked Slots) */
+    .dock-active-list {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+    }
+    .dock-slot {
+      border-bottom: 1px solid var(--border-color);
+      display: flex;
+      flex-direction: column;
+      background: var(--bg-secondary);
+    }
+    .dock-slot-header {
+      padding: 8px 12px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      background: var(--bg-primary);
+      cursor: pointer;
+      user-select: none;
+      transition: background 0.2s;
+    }
+    .dock-slot-header:hover {
+      background: var(--bg-secondary);
+    }
+
+    /* Drag handle */
+    .dock-drag-handle {
+      opacity: 0;
+      color: var(--text-secondary);
+      font-size: 1.1em;
+      cursor: grab;
+      padding: 0 4px;
+      transition: opacity 0.2s, color 0.2s;
+      user-select: none;
+    }
+    .dock-slot:hover .dock-drag-handle {
+      opacity: 1;
+    }
+    .dock-drag-handle:hover {
+      color: var(--accent-cyan);
+    }
+    /* Hide drag handle if only 1 plugin */
+    .dock-active-list:has(.dock-slot:only-child) .dock-drag-handle {
+      display: none;
+    }
+
+    /* Dragging states */
+    .dock-slot.dragging {
+      opacity: 0.5;
+      cursor: grabbing;
+    }
+    .dock-slot.drag-over-top::before,
+    .dock-slot.drag-over-bottom::after {
+      content: '';
+      display: block;
+      height: 4px;
+      background: var(--accent-cyan);
+      margin: 0 -8px;
+    }
+    .dock-slot.drag-over-top::before {
+      margin-bottom: 4px;
+    }
+    .dock-slot.drag-over-bottom::after {
+      margin-top: 4px;
+    }
+    body.dragging-dock-slot {
+      cursor: grabbing !important;
+    }
+    body.dragging-dock-slot * {
+      cursor: grabbing !important;
+    }
+
+    .dock-slot-icon {
+      font-size: 1.2em;
+      flex-shrink: 0;
+    }
+    .dock-slot-name {
+      flex: 1;
+      color: var(--text-emphasis);
+      font-size: 0.9em;
+      font-weight: 500;
+    }
+    .dock-slot-controls {
+      display: flex;
+      gap: 4px;
+    }
+    .dock-slot-btn {
+      background: transparent;
+      border: none;
+      color: var(--text-secondary);
+      cursor: pointer;
+      font-size: 1.1em;
+      padding: 2px 6px;
+      transition: color 0.2s, background 0.2s;
+      border-radius: 3px;
+    }
+    .dock-slot-btn:hover {
+      background: var(--bg-secondary);
+      color: var(--text-emphasis);
+    }
+    .dock-slot-content {
+      padding: 0;
+      background: var(--bg-secondary);
+      max-height: 0;
+      overflow: hidden;
+      transition: max-height 0.15s ease, padding 0.15s ease;
+    }
+    .dock-slot.expanded .dock-slot-content {
+      padding: 15px;
+      max-height: 2000px;
+    }
+
+    /* Content Area */
+    .content-area {
+      flex: 1;
+      min-width: 0;
+      display: flex;
+      flex-direction: column;
+    }
+
     .container {
       width: 80%;
       max-width: 100%;
@@ -63,8 +500,8 @@
       position: relative;
     }
     #error {
-      background: var(--red);
-      color: var(--base3);
+      background: var(--accent-red);
+      color: #fdf6e3;
       padding: 15px;
       border-radius: 4px;
       margin-bottom: 20px;
@@ -73,7 +510,7 @@
     #source-badge {
       display: none;
       background: var(--bg-secondary);
-      border-left: 4px solid var(--blue);
+      border-left: 4px solid var(--accent-blue);
       padding: 8px 15px;
       margin-bottom: 20px;
       border-radius: 4px;
@@ -84,7 +521,7 @@
       display: block;
     }
     #source-badge .source-name {
-      color: var(--blue);
+      color: var(--accent-blue);
       font-weight: 600;
       margin-left: 5px;
     }
@@ -102,28 +539,28 @@
       margin: 0.5em 0;
       border-bottom: 2px solid var(--bg-secondary);
       padding-bottom: 0.3em;
-      color: var(--orange);
+      color: var(--accent-orange);
     }
     #content h2 {
       font-size: 1.5em;
       margin: 0.75em 0 0.5em;
-      color: var(--orange);
+      color: var(--accent-orange);
     }
     #content h3 {
       font-size: 1.25em;
       margin: 0.75em 0 0.5em;
-      color: var(--orange);
+      color: var(--accent-orange);
     }
     #content p { margin: 1em 0; }
     #content a {
-      color: var(--blue);
+      color: var(--accent-blue);
       text-decoration: none;
       padding: 2px 4px;
       border-radius: 3px;
       transition: background 0.2s, color 0.2s;
     }
     #content a:hover {
-      background: var(--blue);
+      background: var(--accent-blue);
       color: var(--bg-primary);
       text-decoration: none;
     }
@@ -131,7 +568,7 @@
     #content li { margin: 0.5em 0; }
     #content code {
       background: var(--bg-secondary);
-      color: var(--cyan);
+      color: var(--accent-cyan);
       padding: 2px 6px;
       border-radius: 3px;
       font-family: 'Consolas', 'Monaco', 'Courier New', monospace;
@@ -152,15 +589,15 @@
       color: inherit;
     }
     #content strong {
-      color: var(--yellow);
+      color: var(--accent-yellow);
       font-weight: bold;
     }
     #content em {
-      color: var(--green);
+      color: var(--accent-green);
       font-style: italic;
     }
     #content blockquote {
-      border-left: 4px solid var(--blue);
+      border-left: 4px solid var(--accent-blue);
       padding-left: 1em;
       margin: 1em 0;
       color: var(--text-secondary);
@@ -168,21 +605,21 @@
 
     /* Wiki links */
     .wiki-link {
-      color: var(--green);
+      color: var(--accent-green);
       font-weight: 500;
       padding: 2px 4px;
       border-radius: 3px;
       transition: background 0.2s, color 0.2s;
     }
     .wiki-link:hover {
-      background: var(--green);
+      background: var(--accent-green);
       color: var(--bg-primary);
       text-decoration: none;
     }
 
     /* Hashtag links */
     .hashtag-link {
-      color: var(--cyan);
+      color: var(--accent-cyan);
       font-weight: 500;
       padding: 2px 4px;
       border-radius: 3px;
@@ -191,7 +628,7 @@
       cursor: pointer;
     }
     .hashtag-link:hover {
-      background: var(--cyan);
+      background: var(--accent-cyan);
       color: var(--bg-primary);
       text-decoration: none;
     }
@@ -200,14 +637,15 @@
     .plugin-block {
       border: 2px solid var(--bg-secondary);
       border-radius: 8px;
+      line-height: 1.4;
       margin: 1.5em 0;
       background: var(--bg-secondary);
     }
     .plugin-header {
       background: var(--bg-secondary);
-      padding: 8px 15px;
+      padding: 4px 10px;
       font-weight: 600;
-      color: var(--yellow);
+      color: var(--accent-yellow);
       border-bottom: 1px solid var(--border-color);
       font-size: 0.9em;
     }
@@ -222,7 +660,7 @@
       display: inline-block;
     }
     .plugin-status {
-      color: var(--green);
+      color: var(--accent-green);
       font-size: 0.8em;
       margin-left: 8px;
     }
@@ -240,17 +678,17 @@
       color: var(--text-secondary);
     }
     .plugin-disabled-message .enable-plugin-link {
-      color: var(--blue);
+      color: var(--accent-blue);
       text-decoration: underline;
       cursor: pointer;
     }
     .plugin-disabled-message .enable-plugin-link:hover {
-      color: var(--green);
+      color: var(--accent-green);
     }
     .plugin-error {
       padding: 15px;
-      background: var(--red);
-      color: var(--base3);
+      background: var(--accent-red);
+      color: #fdf6e3;
       border-radius: 4px;
       margin: 10px 0;
     }
@@ -275,54 +713,7 @@
       height: auto;
     }
 
-    /* Plugin Manager Modal */
-    #plugin-modal {
-      position: fixed;
-      top: 0;
-      left: 0;
-      width: 100%;
-      height: 100%;
-      background: rgba(0, 0, 0, 0.7);
-      display: none;
-      align-items: flex-start;
-      justify-content: center;
-      z-index: 2000;
-      padding-top: 80px;
-    }
-    #plugin-modal.active {
-      display: flex;
-    }
-    .plugin-container {
-      background: var(--bg-primary);
-      border: 2px solid var(--border-color);
-      border-radius: 8px;
-      width: 90%;
-      max-width: 800px;
-      max-height: 80vh;
-      display: flex;
-      flex-direction: column;
-      box-shadow: 0 10px 40px rgba(0, 0, 0, 0.5);
-    }
-    .plugin-header {
-      padding: 20px;
-      border-bottom: 1px solid var(--border-color);
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      background: var(--bg-primary);
-    }
-    .plugin-header h2 {
-      color: var(--orange);
-      font-size: 1.5em;
-      margin: 0;
-    }
-    .plugin-content {
-      flex: 1;
-      overflow-y: auto;
-      padding: 20px;
-      background: var(--bg-primary);
-      border-radius: 0 0 6px 6px;
-    }
+    /* Plugin blocks */
     .plugin-list {
       margin-bottom: 30px;
     }
@@ -338,7 +729,7 @@
       transition: border-color 0.2s;
     }
     .plugin-item.enabled {
-      border-color: var(--green);
+      border-color: var(--accent-green);
     }
     .plugin-item-icon {
       font-size: 2em;
@@ -356,8 +747,29 @@
     .plugin-item-name {
       font-size: 1.1em;
       font-weight: 600;
-      color: var(--yellow);
+      color: var(--accent-yellow);
       margin-bottom: 4px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+    .plugin-type-badge {
+      display: inline-block;
+      font-size: 0.7em;
+      font-weight: 700;
+      padding: 2px 6px;
+      border-radius: 3px;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+    .plugin-type-tool {
+      background: var(--accent-cyan);
+      color: var(--bg-primary);
+    }
+    .plugin-type-renderer {
+      background: var(--accent-blue);
+      color: var(--bg-primary);
     }
     .plugin-item-description {
       color: var(--text-primary);
@@ -369,7 +781,57 @@
     }
     .plugin-item-actions {
       display: flex;
+      align-items: center;
       gap: 10px;
+    }
+    .plugin-autoload-toggle {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 0.85em;
+      color: var(--text-secondary);
+      cursor: pointer;
+      user-select: none;
+    }
+    .plugin-autoload-checkbox {
+      cursor: pointer;
+      width: 16px;
+      height: 16px;
+      accent-color: var(--accent-cyan);
+    }
+    .plugin-autoload-checkbox:disabled {
+      cursor: not-allowed;
+      opacity: 0.5;
+    }
+    .plugin-autoload-label {
+      cursor: pointer;
+      white-space: nowrap;
+    }
+    .plugin-config {
+      margin-top: 10px;
+      padding-top: 10px;
+      border-top: 1px solid var(--bg-primary);
+    }
+    .plugin-config-label {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 0.85em;
+      color: var(--text-secondary);
+    }
+    .plugin-config-input {
+      width: 60px;
+      padding: 4px 8px;
+      background: var(--bg-primary);
+      border: 1px solid var(--border-color);
+      color: var(--text-primary);
+      border-radius: 3px;
+      font-family: 'Consolas', 'Monaco', 'Courier New', monospace;
+      font-size: 0.9em;
+    }
+    .plugin-config-hint {
+      color: var(--text-secondary);
+      font-size: 0.9em;
     }
     .plugin-toggle {
       position: relative;
@@ -406,8 +868,8 @@
       border-radius: 50%;
     }
     .plugin-toggle-checkbox:checked + .plugin-toggle-slider {
-      background-color: var(--green);
-      border-color: var(--green);
+      background-color: var(--accent-green);
+      border-color: var(--accent-green);
     }
     .plugin-toggle-checkbox:checked + .plugin-toggle-slider:before {
       transform: translateX(24px);
@@ -425,7 +887,7 @@
       border-radius: 8px;
     }
     .plugin-install-section h3 {
-      color: var(--orange);
+      color: var(--accent-orange);
       margin-bottom: 15px;
     }
     .plugin-install-section input {
@@ -443,7 +905,7 @@
       cursor: not-allowed;
     }
     .plugin-install-section button {
-      background: var(--blue);
+      background: var(--accent-blue);
       color: var(--bg-primary);
       border: none;
       padding: 10px 20px;
@@ -454,7 +916,7 @@
       transition: background 0.2s;
     }
     .plugin-install-section button:hover:not(:disabled) {
-      background: var(--green);
+      background: var(--accent-green);
     }
     .plugin-install-section button:disabled {
       opacity: 0.5;
@@ -478,7 +940,7 @@
       padding: 8px 15px;
       cursor: pointer;
       font-weight: 600;
-      color: var(--yellow);
+      color: var(--accent-yellow);
       user-select: none;
       list-style: none;
     }
@@ -495,7 +957,7 @@
     }
     .front-matter summary:hover {
       background: var(--bg-secondary);
-      color: var(--green);
+      color: var(--accent-green);
     }
     .fm-table {
       width: 100%;
@@ -508,7 +970,7 @@
       border-top: 1px solid var(--border-color);
     }
     .fm-key {
-      color: var(--blue);
+      color: var(--accent-blue);
       font-weight: 600;
       width: 30%;
     }
@@ -516,31 +978,47 @@
       color: var(--text-primary);
     }
 
-    /* Toggle buttons panel */
+    /* Toggle buttons panels */
     .controls-panel {
       position: fixed;
       top: 20px;
       right: 20px;
       z-index: 1000;
+      display: flex;
+      flex-direction: column;
+      align-items: flex-end;
+      gap: 10px;
+    }
+    .controls-panel-left {
+      position: fixed;
+      top: 20px;
+      left: 20px;
+      z-index: 1000;
+      display: flex;
+      flex-direction: column;
+      align-items: flex-start;
+      gap: 10px;
     }
     .panel-toggle-btn {
       background: var(--bg-secondary);
-      color: var(--yellow);
+      color: var(--accent-yellow);
       border: 1px solid var(--border-color);
-      padding: 6px 10px;
+      padding: 0;
       border-radius: 4px;
       cursor: pointer;
       font-family: 'Consolas', 'Monaco', 'Courier New', monospace;
       font-size: 1.2em;
       font-weight: 600;
       transition: background 0.2s, color 0.2s, transform 0.3s;
-      min-width: 32px;
+      width: 38px;
+      height: 38px;
       text-align: center;
-      float: right;
-      margin-bottom: 10px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
     }
     .panel-toggle-btn:hover {
-      background: var(--blue);
+      background: var(--accent-blue);
       color: var(--bg-primary);
     }
     .panel-toggle-btn.collapsed {
@@ -560,23 +1038,85 @@
       max-height: 0;
       opacity: 0;
     }
-    #layout-toggle, #theme-toggle, #search-toggle, #settings-toggle, #plugin-toggle, #metadata-toggle {
+    #layout-toggle, #theme-toggle, #search-toggle, #settings-toggle, #metadata-toggle, #new-page-toggle, #source-map-toggle, #left-panel-toggle {
       background: var(--bg-secondary);
-      color: var(--yellow);
+      color: var(--accent-yellow);
       border: 1px solid var(--border-color);
-      padding: 8px 12px;
+      padding: 0;
       border-radius: 4px;
       cursor: pointer;
       font-family: 'Consolas', 'Monaco', 'Courier New', monospace;
       font-size: 1.1em;
       font-weight: 600;
       transition: background 0.2s, color 0.2s;
-      min-width: 38px;
+      width: 38px;
+      height: 38px;
+      text-align: center;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      position: relative;
+    }
+    #layout-toggle:hover, #theme-toggle:hover, #search-toggle:hover, #settings-toggle:hover, #metadata-toggle:hover, #new-page-toggle:hover, #source-map-toggle:hover, #left-panel-toggle:hover {
+      background: var(--accent-blue);
+      color: var(--bg-primary);
+    }
+    .left-panel-toggle-btn {
+      background: var(--bg-secondary);
+      color: var(--accent-yellow);
+      border: 1px solid var(--border-color);
+      padding: 0;
+      border-radius: 4px;
+      cursor: pointer;
+      font-family: 'Consolas', 'Monaco', 'Courier New', monospace;
+      font-size: 1.2em;
+      font-weight: 600;
+      transition: background 0.2s, color 0.2s, transform 0.3s;
+      width: 38px;
+      height: 38px;
+      text-align: center;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .left-panel-toggle-btn:hover {
+      background: var(--accent-blue);
+      color: var(--bg-primary);
+    }
+    .left-panel-toggle-btn.collapsed {
+      transform: rotate(180deg);
+    }
+    .left-toggle-buttons {
+      display: flex;
+      gap: 10px;
+      flex-direction: column;
+      align-items: flex-start;
+      max-height: 500px;
+      overflow: hidden;
+      transition: max-height 0.3s ease-out, opacity 0.3s ease-out;
+      opacity: 1;
+    }
+    .left-toggle-buttons.collapsed {
+      max-height: 0;
+      opacity: 0;
+    }
+    #plugin-dashboard-toggle[data-badge]::after {
+      content: attr(data-badge);
+      position: absolute;
+      top: -6px;
+      right: -6px;
+      background: var(--accent-orange);
+      color: var(--bg-primary);
+      font-size: 0.7em;
+      font-weight: 700;
+      padding: 2px 5px;
+      border-radius: 10px;
+      min-width: 16px;
       text-align: center;
     }
-    #layout-toggle:hover, #theme-toggle:hover, #search-toggle:hover, #settings-toggle:hover, #plugin-toggle:hover, #metadata-toggle:hover {
-      background: var(--blue);
-      color: var(--bg-primary);
+    #new-page-toggle:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
     }
     #metadata-toggle.hidden-metadata {
       opacity: 0.5;
@@ -619,15 +1159,19 @@
         top: 10px;
         right: 10px;
       }
-      .panel-toggle-btn {
-        padding: 4px 8px;
-        font-size: 1em;
-        min-width: 28px;
+      .controls-panel-left {
+        top: 10px;
+        left: 10px;
       }
-      #layout-toggle, #theme-toggle, #search-toggle, #settings-toggle, #plugin-toggle, #metadata-toggle {
-        padding: 6px 10px;
+      .panel-toggle-btn, .left-panel-toggle-btn {
+        width: 34px;
+        height: 34px;
         font-size: 1em;
-        min-width: 34px;
+      }
+      #layout-toggle, #theme-toggle, #search-toggle, #settings-toggle, #metadata-toggle, #new-page-toggle, #source-map-toggle, #plugin-dashboard-toggle {
+        width: 34px;
+        height: 34px;
+        font-size: 1em;
       }
       .layout-container[data-layout="columns"] {
         flex-direction: column;
@@ -635,6 +1179,34 @@
       }
       .layout-column {
         width: 100% !important;
+      }
+      /* Smaller H1 headings on mobile */
+      #content h1 {
+        font-size: 1.5em;
+      }
+      #content h2 {
+        font-size: 1.25em;
+      }
+      #content h3 {
+        font-size: 1.1em;
+      }
+      /* Smaller editing notification banner on mobile */
+      .editing-notification-bar {
+        padding: 5px 10px;
+        font-size: 0.8em;
+      }
+      .editing-notification-close {
+        font-size: 1.2em;
+        padding: 0 6px;
+      }
+      body:has(.editing-notification-bar:not([style*="display: none"])) .container {
+        margin-top: 30px;
+      }
+      body:has(.editing-notification-bar:not([style*="display: none"])) .controls-panel {
+        top: 55px;
+      }
+      body:has(.editing-notification-bar:not([style*="display: none"])) .controls-panel-left {
+        top: 55px;
       }
     }
 
@@ -682,7 +1254,7 @@
       outline: none;
     }
     #search-input:focus {
-      border-color: var(--blue);
+      border-color: var(--accent-blue);
     }
     .search-results {
       flex: 1;
@@ -698,7 +1270,7 @@
       transition: background 0.2s;
     }
     .search-result-item:hover {
-      background: var(--blue);
+      background: var(--accent-blue);
       color: var(--bg-primary);
     }
     .search-result-title {
@@ -729,7 +1301,7 @@
     }
     .search-pagination button {
       background: var(--bg-secondary);
-      color: var(--yellow);
+      color: var(--accent-yellow);
       border: 1px solid var(--border-color);
       padding: 6px 12px;
       border-radius: 4px;
@@ -738,7 +1310,7 @@
       transition: background 0.2s, color 0.2s;
     }
     .search-pagination button:hover:not(:disabled) {
-      background: var(--blue);
+      background: var(--accent-blue);
       color: var(--bg-primary);
     }
     .search-pagination button:disabled {
@@ -795,13 +1367,13 @@
       align-items: center;
     }
     .settings-header h2 {
-      color: var(--orange);
+      color: var(--accent-orange);
       font-size: 1.5em;
       margin: 0;
     }
     .close-button {
       background: var(--bg-secondary);
-      color: var(--yellow);
+      color: var(--accent-yellow);
       border: 1px solid var(--border-color);
       padding: 8px 15px;
       border-radius: 4px;
@@ -813,8 +1385,171 @@
       line-height: 1;
     }
     .close-button:hover {
-      background: var(--red);
+      background: var(--accent-red);
       color: var(--bg-primary);
+    }
+    .settings-tabs {
+      display: flex;
+      background: var(--bg-secondary);
+      border-bottom: 2px solid var(--border-color);
+    }
+    .settings-tab {
+      flex: 1;
+      padding: 15px 20px;
+      background: none;
+      border: none;
+      border-bottom: 3px solid transparent;
+      color: var(--text-secondary);
+      font-family: 'Consolas', 'Monaco', 'Courier New', monospace;
+      font-size: 1em;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.2s;
+      position: relative;
+    }
+    .settings-tab:hover {
+      background: var(--bg-primary);
+      color: var(--text-primary);
+    }
+    .settings-tab.active {
+      color: var(--accent-yellow);
+      border-bottom-color: var(--accent-yellow);
+      background: var(--bg-primary);
+    }
+    .tab-badge {
+      display: inline-block;
+      background: var(--accent-orange);
+      color: var(--bg-primary);
+      padding: 2px 8px;
+      border-radius: 10px;
+      font-size: 0.85em;
+      margin-left: 8px;
+      font-weight: 700;
+    }
+    .settings-tab-content {
+      display: none;
+    }
+    .settings-tab-content.active {
+      display: block;
+    }
+
+    /* Nested tabs within Sources */
+    .settings-nested-tabs {
+      display: flex;
+      background: var(--bg-secondary);
+      border-bottom: 2px solid var(--border-color);
+      margin: -20px -20px 20px -20px;
+    }
+    .settings-nested-tab {
+      flex: 1;
+      padding: 12px 15px;
+      background: none;
+      border: none;
+      border-bottom: 2px solid transparent;
+      color: var(--text-secondary);
+      font-family: 'Consolas', 'Monaco', 'Courier New', monospace;
+      font-size: 0.9em;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+    .settings-nested-tab:hover {
+      background: var(--bg-primary);
+      color: var(--text-primary);
+    }
+    .settings-nested-tab.active {
+      color: var(--accent-blue);
+      border-bottom-color: var(--accent-blue);
+      background: var(--bg-primary);
+    }
+    .settings-nested-content {
+      margin-top: 0;
+    }
+    .settings-nested-tab-content {
+      display: none;
+    }
+    .settings-nested-tab-content.active {
+      display: block;
+    }
+
+    /* Theme selector */
+    .themes-selector h3 {
+      color: var(--accent-orange);
+      margin-bottom: 15px;
+    }
+    .theme-options {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+    .theme-option {
+      display: flex;
+      align-items: flex-start;
+      gap: 12px;
+      padding: 15px;
+      background: var(--bg-secondary);
+      border: 2px solid var(--border-color);
+      border-radius: 6px;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+    .theme-option:hover {
+      border-color: var(--accent-blue);
+    }
+    .theme-option:has(input:checked) {
+      border-color: var(--accent-green);
+      background: var(--bg-primary);
+    }
+    .theme-option input[type="radio"] {
+      margin-top: 2px;
+      cursor: pointer;
+    }
+    .theme-option-label {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+    .theme-option-name {
+      font-weight: 600;
+      color: var(--text-primary);
+      font-size: 1.05em;
+    }
+    .theme-option-desc {
+      color: var(--text-secondary);
+      font-size: 0.85em;
+    }
+    .theme-mode-toggle {
+      display: flex;
+      gap: 10px;
+    }
+    .mode-option {
+      flex: 1;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 10px;
+      padding: 15px;
+      background: var(--bg-secondary);
+      border: 2px solid var(--border-color);
+      border-radius: 6px;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+    .mode-option:hover {
+      border-color: var(--accent-blue);
+    }
+    .mode-option:has(input:checked) {
+      border-color: var(--accent-green);
+      background: var(--bg-primary);
+    }
+    .mode-option input[type="radio"] {
+      cursor: pointer;
+    }
+    .mode-option-label {
+      font-weight: 600;
+      color: var(--text-primary);
+      font-size: 1.1em;
     }
     .settings-content {
       flex: 1;
@@ -833,13 +1568,18 @@
       display: flex;
       justify-content: space-between;
       align-items: flex-start;
+      transition: opacity 0.2s;
+    }
+    .source-item.disabled {
+      opacity: 0.6;
+      border-color: var(--text-secondary);
     }
     .source-info {
       flex: 1;
     }
     .source-info strong {
       display: block;
-      color: var(--yellow);
+      color: var(--accent-yellow);
       font-size: 1.1em;
       margin-bottom: 8px;
     }
@@ -851,9 +1591,69 @@
       margin: 4px 0;
       word-break: break-all;
     }
+    .source-actions {
+      display: flex;
+      gap: 10px;
+      align-items: center;
+    }
+    .source-toggle {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .source-toggle-checkbox {
+      appearance: none;
+      width: 40px;
+      height: 20px;
+      background: var(--bg-secondary);
+      border: 2px solid var(--border-color);
+      border-radius: 20px;
+      cursor: pointer;
+      position: relative;
+      transition: background 0.3s, border-color 0.3s;
+    }
+    .source-toggle-checkbox:before {
+      content: "";
+      position: absolute;
+      width: 14px;
+      height: 14px;
+      background: var(--text-secondary);
+      border-radius: 50%;
+      top: 1px;
+      left: 1px;
+      transition: transform 0.3s, background 0.3s;
+    }
+    .source-toggle-checkbox:checked {
+      background: var(--accent-green);
+      border-color: var(--accent-green);
+    }
+    .source-toggle-checkbox:checked:before {
+      transform: translateX(20px);
+      background: var(--bg-primary);
+    }
+    .source-toggle-label {
+      font-size: 0.85em;
+      color: var(--text-secondary);
+      min-width: 60px;
+    }
+    .edit-source-btn {
+      background: var(--bg-secondary);
+      color: var(--accent-blue);
+      border: 1px solid var(--border-color);
+      padding: 6px 12px;
+      border-radius: 4px;
+      cursor: pointer;
+      font-family: 'Consolas', 'Monaco', 'Courier New', monospace;
+      transition: background 0.2s, color 0.2s;
+      white-space: nowrap;
+    }
+    .edit-source-btn:hover {
+      background: var(--accent-blue);
+      color: var(--bg-primary);
+    }
     .remove-source-btn {
       background: var(--bg-secondary);
-      color: var(--red);
+      color: var(--accent-red);
       border: 1px solid var(--border-color);
       padding: 6px 12px;
       border-radius: 4px;
@@ -863,7 +1663,7 @@
       white-space: nowrap;
     }
     .remove-source-btn:hover {
-      background: var(--red);
+      background: var(--accent-red);
       color: var(--bg-primary);
     }
     .add-source-form {
@@ -873,7 +1673,7 @@
       padding: 20px;
     }
     .add-source-form h3 {
-      color: var(--orange);
+      color: var(--accent-orange);
       font-size: 1.2em;
       margin-bottom: 15px;
     }
@@ -890,10 +1690,10 @@
       outline: none;
     }
     .add-source-form input:focus {
-      border-color: var(--blue);
+      border-color: var(--accent-blue);
     }
     .add-source-form button {
-      background: var(--blue);
+      background: var(--accent-blue);
       color: var(--bg-primary);
       border: none;
       padding: 10px 20px;
@@ -904,7 +1704,7 @@
       transition: background 0.2s;
     }
     .add-source-form button:hover {
-      background: var(--green);
+      background: var(--accent-green);
     }
     #cancel-edit-btn {
       background: var(--bg-secondary);
@@ -912,12 +1712,12 @@
       border: 1px solid var(--border-color);
     }
     #cancel-edit-btn:hover {
-      background: var(--red);
+      background: var(--accent-red);
       color: var(--bg-primary);
     }
     .search-result-source {
       display: inline-block;
-      background: var(--blue);
+      background: var(--accent-blue);
       color: var(--bg-primary);
       padding: 2px 6px;
       border-radius: 3px;
@@ -933,26 +1733,1219 @@
         width: 95%;
         max-height: 85vh;
       }
+      /* Smaller header text on mobile */
+      .settings-header h2 {
+        font-size: 1.1em;
+      }
+      /* Compact tabs on mobile */
+      .settings-tab {
+        padding: 10px 8px;
+        font-size: 0.85em;
+      }
+      .tab-badge {
+        display: block;
+        margin-left: 0;
+        margin-top: 2px;
+      }
+      /* Compact nested tabs on mobile */
+      .settings-nested-tab {
+        padding: 10px 8px;
+        font-size: 0.8em;
+      }
+      /* Compact theme selector on mobile */
+      .theme-option {
+        padding: 10px;
+      }
+      .theme-option-name {
+        font-size: 0.95em;
+      }
+      .theme-option-desc {
+        font-size: 0.8em;
+      }
+      .mode-option {
+        padding: 12px;
+      }
+      .mode-option-label {
+        font-size: 1em;
+      }
+      /* Reorganize source items for mobile - name/toggle/buttons on first line, URLs below */
+      .source-item {
+        display: flex;
+        flex-direction: row;
+        flex-wrap: wrap;
+        padding: 10px;
+        align-items: center;
+        gap: 8px;
+      }
+      .source-info {
+        display: contents;
+      }
+      .source-info strong {
+        flex: 1 1 auto;
+        min-width: 100px;
+        margin-bottom: 0;
+        font-size: 0.95em;
+      }
+      .source-actions {
+        flex: 0 0 auto;
+        display: flex;
+        gap: 6px;
+        align-items: center;
+        margin-bottom: 0;
+      }
+      .source-urls {
+        flex: 1 1 100%;
+        width: 100%;
+        font-size: 0.8em;
+        margin-top: 4px;
+      }
+      .source-toggle {
+        display: flex;
+        align-items: center;
+        gap: 4px;
+      }
+      .source-toggle-label {
+        font-size: 0.75em;
+        min-width: auto;
+      }
+      .edit-source-btn,
+      .remove-source-btn {
+        font-size: 0.8em;
+        padding: 4px 8px;
+        white-space: nowrap;
+      }
+    }
+
+    /* Edit Modal */
+    #edit-modal {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: rgba(0, 0, 0, 0.7);
+      display: none;
+      align-items: center;
+      justify-content: center;
+      z-index: 2000;
+    }
+    #edit-modal.active {
+      display: flex;
+    }
+    .edit-container {
+      background: var(--bg-primary);
+      border: 2px solid var(--border-color);
+      border-radius: 8px;
+      width: 95%;
+      height: 95%;
+      max-width: 1200px;
+      max-height: 90vh;
+      display: flex;
+      flex-direction: column;
+      box-shadow: 0 10px 40px rgba(0, 0, 0, 0.5);
+    }
+    .edit-header {
+      padding: 15px 20px;
+      border-bottom: 1px solid var(--border-color);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      background: var(--bg-secondary);
+    }
+    .edit-header-info {
+      flex: 1;
+    }
+    .edit-filename {
+      color: var(--accent-yellow);
+      font-size: 1.1em;
+      font-weight: 600;
+      margin-bottom: 4px;
+    }
+    .edit-source {
+      color: var(--text-secondary);
+      font-size: 0.85em;
+    }
+    .edit-content {
+      flex: 1;
+      padding: 0;
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+    }
+    #edit-textarea {
+      flex: 1;
+      width: 100%;
+      padding: 20px;
+      font-family: 'Consolas', 'Monaco', 'Courier New', monospace;
+      font-size: 0.95em;
+      line-height: 1.6;
+      background: var(--bg-primary);
+      color: var(--text-primary);
+      border: none;
+      resize: none;
+      outline: none;
+    }
+    .edit-footer {
+      padding: 15px 20px;
+      border-top: 1px solid var(--border-color);
+      display: flex;
+      gap: 10px;
+      justify-content: flex-end;
+      background: var(--bg-secondary);
+    }
+    .edit-primary-btn {
+      background: var(--accent-blue);
+      color: var(--bg-primary);
+      border: none;
+      padding: 10px 20px;
+      border-radius: 4px;
+      cursor: pointer;
+      font-family: 'Consolas', 'Monaco', 'Courier New', monospace;
+      font-weight: 600;
+      transition: background 0.2s;
+    }
+    .edit-primary-btn:hover {
+      background: var(--accent-green);
+    }
+    .edit-secondary-btn {
+      background: var(--bg-secondary);
+      color: var(--text-primary);
+      border: 1px solid var(--border-color);
+      padding: 10px 20px;
+      border-radius: 4px;
+      cursor: pointer;
+      font-family: 'Consolas', 'Monaco', 'Courier New', monospace;
+      font-weight: 600;
+      transition: background 0.2s;
+    }
+    .edit-secondary-btn:hover {
+      background: var(--accent-red);
+      color: var(--bg-primary);
+    }
+    @media (max-width: 768px) {
+      .edit-container {
+        width: 100%;
+        height: 100%;
+        max-width: 100%;
+        max-height: 100%;
+        border-radius: 0;
+      }
+      .edit-footer {
+        flex-wrap: wrap;
+      }
+      .edit-primary-btn,
+      .edit-secondary-btn {
+        flex: 1;
+        min-width: 120px;
+      }
+    }
+
+    /* Edit Actions on Pages */
+    #edit-actions {
+      margin-bottom: 20px;
+    }
+    .edit-actions-regular,
+    .edit-actions-editing {
+      background: var(--bg-secondary);
+      border-left: 4px solid var(--accent-green);
+      padding: 12px 15px;
+      border-radius: 4px;
+    }
+    .commit-message-container {
+      margin-bottom: 10px;
+    }
+    .commit-message-container label {
+      display: block;
+      color: var(--text-secondary);
+      font-size: 0.85em;
+      margin-bottom: 5px;
+    }
+    .commit-message-input {
+      width: calc(100% - 60px);
+      padding: 8px 12px;
+      background: var(--bg-primary);
+      color: var(--text-primary);
+      border: 1px solid var(--border-color);
+      border-radius: 4px;
+      font-family: 'Consolas', 'Monaco', 'Courier New', monospace;
+      font-size: 0.9em;
+      outline: none;
+    }
+    .commit-message-input:focus {
+      border-color: var(--accent-blue);
+    }
+    .commit-message-input.over-limit {
+      border-color: var(--accent-orange);
+    }
+    .commit-message-counter {
+      display: inline-block;
+      margin-left: 8px;
+      color: var(--text-secondary);
+      font-size: 0.85em;
+      vertical-align: middle;
+    }
+    .commit-message-counter.over-limit {
+      color: var(--accent-orange);
+    }
+    .edit-actions-buttons {
+      display: flex;
+      gap: 10px;
+    }
+    .edit-action-btn {
+      background: var(--accent-blue);
+      color: var(--bg-primary);
+      border: none;
+      padding: 8px 16px;
+      border-radius: 4px;
+      cursor: pointer;
+      font-family: 'Consolas', 'Monaco', 'Courier New', monospace;
+      font-weight: 600;
+      transition: background 0.2s;
+    }
+    .edit-action-btn:hover {
+      background: var(--accent-green);
+    }
+    .publish-action-btn {
+      background: var(--accent-green);
+      color: var(--bg-primary);
+      border: none;
+      padding: 8px 16px;
+      border-radius: 4px;
+      cursor: pointer;
+      font-family: 'Consolas', 'Monaco', 'Courier New', monospace;
+      font-weight: 600;
+      transition: background 0.2s;
+    }
+    .publish-action-btn:hover {
+      background: var(--accent-yellow);
+      color: var(--bg-primary);
+    }
+
+    /* Publish Error Modal */
+    #publish-error-modal {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: rgba(0, 0, 0, 0.7);
+      display: none;
+      align-items: center;
+      justify-content: center;
+      z-index: 2000;
+    }
+    #publish-error-modal.active {
+      display: flex;
+    }
+    .publish-error-container {
+      background: var(--bg-primary);
+      border: 2px solid var(--border-color);
+      border-radius: 8px;
+      width: 90%;
+      max-width: 600px;
+      box-shadow: 0 10px 40px rgba(0, 0, 0, 0.5);
+    }
+    .publish-error-header {
+      padding: 20px;
+      border-bottom: 1px solid var(--border-color);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      background: var(--bg-secondary);
+    }
+    .publish-error-header h2 {
+      color: var(--accent-red);
+      font-size: 1.5em;
+      margin: 0;
+    }
+    .publish-error-content {
+      padding: 20px;
+    }
+    .publish-error-message {
+      color: var(--accent-red);
+      font-weight: 600;
+      margin-bottom: 10px;
+      font-size: 1.1em;
+    }
+    .publish-error-details {
+      color: var(--text-secondary);
+      font-size: 0.9em;
+      line-height: 1.6;
+    }
+    .publish-error-footer {
+      padding: 15px 20px;
+      border-top: 1px solid var(--border-color);
+      display: flex;
+      gap: 10px;
+      justify-content: flex-end;
+      background: var(--bg-secondary);
+    }
+
+    /* Publish Success Modal */
+    #publish-success-modal {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: rgba(0, 0, 0, 0.5);
+      display: none;
+      align-items: center;
+      justify-content: center;
+      z-index: 2000;
+      pointer-events: none;
+    }
+    #publish-success-modal.active {
+      display: flex;
+    }
+    .publish-success-container {
+      background: var(--bg-primary);
+      border: 2px solid var(--accent-green);
+      border-radius: 8px;
+      padding: 30px;
+      box-shadow: 0 10px 40px rgba(0, 0, 0, 0.5);
+      text-align: center;
+      pointer-events: all;
+    }
+    .publish-success-icon {
+      font-size: 4em;
+      color: var(--accent-green);
+      margin-bottom: 15px;
+    }
+    .publish-success-message {
+      color: var(--accent-green);
+      font-size: 1.5em;
+      font-weight: 600;
+      margin-bottom: 10px;
+    }
+    .publish-success-link {
+      color: var(--text-secondary);
+      font-size: 0.9em;
+    }
+    .publish-success-link a {
+      color: var(--accent-blue);
+      text-decoration: underline;
+    }
+    .publish-success-link a:hover {
+      color: var(--accent-green);
+    }
+
+    /* New Page Modal */
+    #new-page-modal {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: rgba(0, 0, 0, 0.7);
+      display: none;
+      align-items: flex-start;
+      justify-content: center;
+      z-index: 2000;
+      padding-top: 80px;
+    }
+    #new-page-modal.active {
+      display: flex;
+    }
+    .new-page-container {
+      background: var(--bg-primary);
+      border: 2px solid var(--border-color);
+      border-radius: 8px;
+      width: 90%;
+      max-width: 600px;
+      max-height: 80vh;
+      display: flex;
+      flex-direction: column;
+      box-shadow: 0 10px 40px rgba(0, 0, 0, 0.5);
+    }
+    .new-page-header {
+      padding: 20px;
+      border-bottom: 1px solid var(--border-color);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      background: var(--bg-secondary);
+    }
+    .new-page-header h2 {
+      color: var(--accent-orange);
+      font-size: 1.5em;
+      margin: 0;
+    }
+    .new-page-content {
+      flex: 1;
+      overflow-y: auto;
+      display: flex;
+      flex-direction: column;
+    }
+    .new-page-section {
+      flex: 1;
+      padding: 20px;
+    }
+    .new-page-section h3 {
+      color: var(--accent-orange);
+      font-size: 1.2em;
+      margin-bottom: 10px;
+    }
+    .new-page-description {
+      color: var(--text-secondary);
+      font-size: 0.9em;
+      margin-bottom: 15px;
+    }
+    .new-page-source-list {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+    .new-page-source-item {
+      background: var(--bg-secondary);
+      border: 2px solid var(--border-color);
+      border-radius: 6px;
+      padding: 15px;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+    .new-page-source-item:hover {
+      border-color: var(--accent-blue);
+    }
+    .new-page-source-item.selected {
+      border-color: var(--accent-green);
+      background: var(--bg-primary);
+    }
+    .new-page-source-item-name {
+      font-weight: 600;
+      color: var(--accent-yellow);
+      margin-bottom: 4px;
+    }
+    .new-page-source-item-info {
+      font-size: 0.85em;
+      color: var(--text-secondary);
+    }
+    .new-page-selected-source {
+      background: var(--bg-secondary);
+      padding: 10px 15px;
+      border-radius: 4px;
+      margin-bottom: 15px;
+      font-size: 0.9em;
+      color: var(--text-secondary);
+    }
+    .new-page-selected-source span {
+      color: var(--accent-blue);
+      font-weight: 600;
+    }
+    .new-page-section label {
+      display: block;
+      color: var(--text-primary);
+      font-weight: 600;
+      margin: 15px 0 8px 0;
+    }
+    .new-page-section input[type="text"] {
+      width: 100%;
+      padding: 10px 12px;
+      background: var(--bg-secondary);
+      color: var(--text-primary);
+      border: 1px solid var(--border-color);
+      border-radius: 4px;
+      font-family: 'Consolas', 'Monaco', 'Courier New', monospace;
+      font-size: 0.95em;
+      outline: none;
+    }
+    .new-page-section input[type="text"]:focus {
+      border-color: var(--accent-blue);
+    }
+    .new-page-section input[type="text"].error {
+      border-color: var(--accent-red);
+    }
+    .new-page-section textarea {
+      width: 100%;
+      padding: 10px 12px;
+      background: var(--bg-secondary);
+      color: var(--text-primary);
+      border: 1px solid var(--border-color);
+      border-radius: 4px;
+      font-family: 'Consolas', 'Monaco', 'Courier New', monospace;
+      font-size: 0.95em;
+      line-height: 1.6;
+      resize: vertical;
+      outline: none;
+    }
+    .new-page-section textarea:focus {
+      border-color: var(--accent-blue);
+    }
+    .new-page-error {
+      color: var(--accent-red);
+      font-size: 0.85em;
+      margin-top: 5px;
+      padding: 8px 12px;
+      background: rgba(220, 50, 47, 0.1);
+      border-radius: 4px;
+      border-left: 3px solid var(--accent-red);
+    }
+    .new-page-preview {
+      color: var(--text-secondary);
+      font-size: 0.85em;
+      margin-top: 5px;
+      padding: 8px 12px;
+      background: var(--bg-secondary);
+      border-radius: 4px;
+      font-family: 'Consolas', 'Monaco', 'Courier New', monospace;
+    }
+    .new-page-preview strong {
+      color: var(--accent-cyan);
+    }
+    .new-page-footer {
+      padding: 15px 20px;
+      border-top: 1px solid var(--border-color);
+      display: flex;
+      gap: 10px;
+      justify-content: flex-end;
+      background: var(--bg-secondary);
+    }
+    @media (max-width: 768px) {
+      #new-page-modal {
+        padding-top: 60px;
+      }
+      .new-page-container {
+        width: 95%;
+        max-height: 85vh;
+      }
+    }
+
+    /* Editing Sources Section */
+    .editing-source-item {
+      background: var(--bg-secondary);
+      border: 2px solid var(--accent-green);
+      border-radius: 4px;
+      padding: 15px;
+      margin-bottom: 15px;
+    }
+    .editing-source-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 10px;
+    }
+    .editing-source-name {
+      color: var(--accent-yellow);
+      font-size: 1.1em;
+      font-weight: 600;
+    }
+    .editing-source-count {
+      color: var(--text-secondary);
+      font-size: 0.85em;
+    }
+    .editing-source-clear {
+      background: var(--accent-red);
+      color: var(--bg-primary);
+      border: none;
+      padding: 6px 12px;
+      border-radius: 4px;
+      cursor: pointer;
+      font-family: 'Consolas', 'Monaco', 'Courier New', monospace;
+      font-size: 0.85em;
+      transition: background 0.2s;
+    }
+    .editing-source-clear:hover {
+      background: var(--accent-orange);
+    }
+    .editing-pages-list {
+      margin-top: 10px;
+    }
+    .editing-page-item {
+      background: var(--bg-primary);
+      padding: 8px 12px;
+      margin: 5px 0;
+      border-radius: 4px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    .editing-page-name {
+      flex: 1;
+      color: var(--text-primary);
+    }
+    .editing-page-actions {
+      display: flex;
+      gap: 8px;
+    }
+    .editing-page-view,
+    .editing-page-discard {
+      padding: 4px 10px;
+      border-radius: 3px;
+      font-size: 0.85em;
+      cursor: pointer;
+      font-family: 'Consolas', 'Monaco', 'Courier New', monospace;
+      transition: background 0.2s;
+    }
+    .editing-page-view {
+      background: var(--accent-blue);
+      color: var(--bg-primary);
+      border: none;
+    }
+    .editing-page-view:hover {
+      background: var(--accent-green);
+    }
+    .editing-page-discard {
+      background: var(--bg-secondary);
+      color: var(--accent-red);
+      border: 1px solid var(--border-color);
+    }
+    .editing-page-discard:hover {
+      background: var(--accent-red);
+      color: var(--bg-primary);
+    }
+
+    /* Editing Notification Bar */
+    .editing-notification-bar {
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      background: var(--accent-orange);
+      color: var(--bg-primary);
+      padding: 5px 10px;
+      z-index: 3000;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      font-weight: 600;
+      font-size: 0.9em;
+      cursor: pointer;
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+    }
+    .editing-notification-content {
+      flex: 1;
+    }
+    .editing-notification-close {
+      background: none;
+      border: none;
+      color: var(--bg-primary);
+      font-size: 1.5em;
+      cursor: pointer;
+      padding: 0 8px;
+      line-height: 1;
+    }
+    .editing-notification-close:hover {
+      color: var(--accent-red);
+    }
+    body:has(.editing-notification-bar:not([style*="display: none"])) .container {
+      margin-top: 20px;
+    }
+    body:has(.editing-notification-bar:not([style*="display: none"])) .controls-panel {
+      top: 50px;
+    }
+    body:has(.editing-notification-bar:not([style*="display: none"])) .controls-panel-left {
+      top: 50px;
+    }
+
+    /* Source Map Modal */
+    #source-map-modal {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: rgba(0, 0, 0, 0.7);
+      display: none;
+      align-items: center;
+      justify-content: center;
+      z-index: 2000;
+    }
+    #source-map-modal.active {
+      display: flex;
+    }
+    .source-map-container {
+      background: var(--bg-primary);
+      border: 2px solid var(--border-color);
+      border-radius: 8px;
+      width: 95%;
+      height: 90%;
+      max-width: 1400px;
+      max-height: 90vh;
+      display: flex;
+      flex-direction: column;
+      box-shadow: 0 10px 40px rgba(0, 0, 0, 0.5);
+    }
+    .source-map-header {
+      padding: 15px 20px;
+      border-bottom: 1px solid var(--border-color);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      background: var(--bg-secondary);
+    }
+    .source-map-header h2 {
+      color: var(--accent-orange);
+      font-size: 1.5em;
+      margin: 0;
+    }
+    .source-map-controls {
+      padding: 12px 20px;
+      border-bottom: 1px solid var(--border-color);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      background: var(--bg-secondary);
+      flex-wrap: wrap;
+      gap: 15px;
+    }
+    .source-map-depth-control {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+    .source-map-depth-control label {
+      color: var(--text-primary);
+      font-weight: 600;
+      font-size: 0.9em;
+    }
+    #map-depth-slider {
+      width: 150px;
+      height: 6px;
+      background: var(--bg-primary);
+      outline: none;
+      border-radius: 3px;
+      -webkit-appearance: none;
+    }
+    #map-depth-slider::-webkit-slider-thumb {
+      -webkit-appearance: none;
+      appearance: none;
+      width: 18px;
+      height: 18px;
+      background: var(--accent-blue);
+      cursor: pointer;
+      border-radius: 50%;
+      border: 2px solid var(--bg-primary);
+    }
+    #map-depth-slider::-moz-range-thumb {
+      width: 18px;
+      height: 18px;
+      background: var(--accent-blue);
+      cursor: pointer;
+      border-radius: 50%;
+      border: 2px solid var(--bg-primary);
+    }
+    #map-depth-label {
+      color: var(--accent-yellow);
+      font-weight: 600;
+      min-width: 20px;
+      text-align: center;
+    }
+    .source-map-legend {
+      display: flex;
+      gap: 20px;
+      align-items: center;
+    }
+    .legend-item {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 0.85em;
+      color: var(--text-secondary);
+    }
+    .legend-icon {
+      display: inline-block;
+      width: 16px;
+      height: 16px;
+      border: 2px solid var(--bg-primary);
+    }
+    .legend-page {
+      background: var(--accent-blue);
+      border-radius: 50%;
+    }
+    .legend-tag {
+      background: var(--accent-cyan);
+    }
+    .legend-current {
+      background: var(--accent-orange);
+      border-radius: 50%;
+      border-width: 3px;
+    }
+    .source-map-content {
+      flex: 1;
+      position: relative;
+      overflow: hidden;
+      background: var(--bg-primary);
+    }
+    .source-map-loading {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 20px;
+      color: var(--text-secondary);
+      font-size: 1.1em;
+    }
+    .loading-spinner {
+      width: 50px;
+      height: 50px;
+      border: 4px solid var(--bg-secondary);
+      border-top: 4px solid var(--accent-blue);
+      border-radius: 50%;
+      animation: spin 1s linear infinite;
+    }
+    @keyframes spin {
+      0% { transform: rotate(0deg); }
+      100% { transform: rotate(360deg); }
+    }
+    @keyframes pulse {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.7; }
+    }
+    .source-map-graph {
+      width: 100%;
+      height: 100%;
+      display: none;
+    }
+    .source-map-graph svg {
+      width: 100%;
+      height: 100%;
+    }
+    .source-map-graph .current-page-node circle {
+      animation: pulse 2s ease-in-out infinite;
+    }
+
+    /* SVG node styling */
+    .source-map-graph .node-page {
+      fill: var(--accent-blue);
+      stroke: var(--bg-primary);
+      opacity: 0.9;
+    }
+    .source-map-graph .node-page-current {
+      fill: var(--accent-orange);
+      stroke: var(--accent-yellow);
+      opacity: 1;
+    }
+    .source-map-graph .node-tag {
+      fill: var(--accent-cyan);
+      stroke: var(--bg-primary);
+    }
+    .source-map-graph .node-label {
+      fill: var(--text-primary);
+      font-weight: 600;
+    }
+    .source-map-graph .node-tag-text {
+      fill: var(--bg-primary);
+      font-weight: 700;
+      font-family: 'Consolas', 'Monaco', 'Courier New', monospace;
+    }
+    .source-map-graph .map-link {
+      stroke: var(--border-color);
+    }
+    .source-map-graph .arrowhead {
+      fill: var(--text-secondary);
+    }
+
+    /* Mobile adjustments for source map */
+    @media (max-width: 768px) {
+      .source-map-container {
+        width: 100%;
+        height: 100%;
+        max-width: 100%;
+        max-height: 100%;
+        border-radius: 0;
+      }
+      .source-map-controls {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 10px;
+      }
+      .source-map-legend {
+        flex-wrap: wrap;
+        gap: 12px;
+      }
+      #map-depth-slider {
+        width: 100px;
+      }
+    }
+
+    /* Dock Responsive - Overlay Mode */
+    @media (max-width: 899px) {
+      .plugin-dock {
+        position: fixed;
+        left: 0;
+        top: 0;
+        bottom: 0;
+        z-index: 2000;
+        border-right: none;
+        box-shadow: 2px 0 10px rgba(0, 0, 0, 0.3);
+      }
+      .plugin-dock.open {
+        width: 90vw !important;
+        min-width: 90vw !important;
+      }
+      .dock-resize-handle {
+        display: none !important;
+      }
+      .content-area {
+        margin-left: 0 !important;
+      }
+    }
+
+    /* Dock Backdrop (Overlay Mode) */
+    #dock-backdrop {
+      display: none;
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: rgba(0, 0, 0, 0.4);
+      z-index: 1999;
+    }
+    #dock-backdrop.visible {
+      display: block;
+    }
+
+    /* Plugin Windows */
+    .plugin-window {
+      position: fixed;
+      background: var(--bg-primary);
+      border: 2px solid var(--border-color);
+      border-radius: 8px;
+      box-shadow: 0 10px 40px rgba(0, 0, 0, 0.5);
+      display: flex;
+      flex-direction: column;
+      min-width: 300px;
+      min-height: 200px;
+    }
+    .plugin-window-header {
+      background: var(--bg-secondary);
+      border-bottom: 1px solid var(--border-color);
+      padding: 10px 15px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      cursor: move;
+      user-select: none;
+      border-radius: 6px 6px 0 0;
+    }
+    .plugin-window-title {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      flex: 1;
+    }
+    .plugin-window-icon {
+      font-size: 1.2em;
+    }
+    .plugin-window-name {
+      font-weight: 600;
+      color: var(--accent-yellow);
+      font-size: 1em;
+    }
+    .plugin-window-controls {
+      display: flex;
+      gap: 5px;
+    }
+    .plugin-window-btn {
+      background: var(--bg-primary);
+      color: var(--text-primary);
+      border: 1px solid var(--border-color);
+      width: 28px;
+      height: 28px;
+      border-radius: 4px;
+      cursor: pointer;
+      font-size: 1.2em;
+      line-height: 1;
+      transition: all 0.2s;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .plugin-window-btn:hover {
+      background: var(--accent-blue);
+      color: var(--bg-primary);
+    }
+    .plugin-window-close:hover {
+      background: var(--accent-red);
+    }
+    .plugin-window-content {
+      flex: 1;
+      overflow: auto;
+      padding: 15px;
+      background: var(--bg-primary);
+      border-radius: 0 0 6px 6px;
+    }
+    .plugin-window-resize-handle {
+      position: absolute;
+      z-index: 10;
+    }
+    .plugin-window-resize-n,
+    .plugin-window-resize-s {
+      left: 0;
+      right: 0;
+      height: 8px;
+      cursor: ns-resize;
+    }
+    .plugin-window-resize-n { top: 0; }
+    .plugin-window-resize-s { bottom: 0; }
+    .plugin-window-resize-e,
+    .plugin-window-resize-w {
+      top: 0;
+      bottom: 0;
+      width: 8px;
+      cursor: ew-resize;
+    }
+    .plugin-window-resize-e { right: 0; }
+    .plugin-window-resize-w { left: 0; }
+    .plugin-window-resize-ne,
+    .plugin-window-resize-nw,
+    .plugin-window-resize-se,
+    .plugin-window-resize-sw {
+      width: 16px;
+      height: 16px;
+    }
+    .plugin-window-resize-ne {
+      top: 0;
+      right: 0;
+      cursor: nesw-resize;
+    }
+    .plugin-window-resize-nw {
+      top: 0;
+      left: 0;
+      cursor: nwse-resize;
+    }
+    .plugin-window-resize-se {
+      bottom: 0;
+      right: 0;
+      cursor: nwse-resize;
+    }
+    .plugin-window-resize-sw {
+      bottom: 0;
+      left: 0;
+      cursor: nesw-resize;
+    }
+
+    /* Minimized Plugin Chips */
+    .plugin-minimized-chip {
+      position: fixed;
+      background: var(--bg-secondary);
+      border: 1px solid var(--border-color);
+      border-radius: 4px;
+      padding: 8px 12px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      cursor: pointer;
+      transition: all 0.2s;
+      min-width: 150px;
+      max-width: 200px;
+    }
+    .plugin-minimized-chip:hover {
+      background: var(--accent-blue);
+      color: var(--bg-primary);
+      border-color: var(--accent-blue);
+    }
+    .plugin-minimized-icon {
+      font-size: 1.2em;
+    }
+    .plugin-minimized-name {
+      font-size: 0.9em;
+      font-weight: 600;
+      color: var(--text-primary);
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    .plugin-minimized-chip:hover .plugin-minimized-name {
+      color: var(--bg-primary);
     }
   </style>
 </head>
 <body>
+  <div id="editing-notification-bar" class="editing-notification-bar" style="display: none;">
+    <div class="editing-notification-content">
+      ⚠️ You have <span id="editing-page-count">0</span> page(s) in edit mode - Click to view and publish
+    </div>
+    <button id="editing-notification-close" class="editing-notification-close">×</button>
+  </div>
+
+  <!-- Left panel controls (dock toggle moved to dock header) -->
+  <div class="controls-panel-left" style="display: none;">
+    <button id="left-panel-toggle" class="left-panel-toggle-btn" title="Toggle controls">▼</button>
+    <div class="left-toggle-buttons">
+    </div>
+  </div>
+
   <div class="controls-panel">
     <button id="panel-toggle" class="panel-toggle-btn" title="Toggle controls">▼</button>
     <div class="toggle-buttons">
+      <button id="new-page-toggle" title="Create new page">+</button>
+      <button id="source-map-toggle" title="Source Map">🌐</button>
       <button id="search-toggle" title="Search">🔍</button>
-      <button id="plugin-toggle" title="Plugins">🔌</button>
-      <button id="settings-toggle" title="Settings">⚙</button>
+      <button id="settings-toggle" title="Settings & Plugins">⚙</button>
       <button id="metadata-toggle" title="Toggle metadata">ⓘ</button>
       <button id="theme-toggle" title="Toggle theme">☀</button>
       <button id="layout-toggle" title="Toggle layout">|||</button>
     </div>
   </div>
-  <div class="container">
-    <div id="error"></div>
-    <div id="source-badge"></div>
-    <div id="content"></div>
+  <div class="app-layout">
+    <!-- Plugin Dock -->
+    <!-- Dock Toggle Button (floats when dock closed, moves to dock when open) -->
+    <button id="plugin-dashboard-toggle" class="dock-toggle-btn" title="Toggle Plugin Dock (Ctrl+D)">🧩</button>
+
+    <div id="plugin-dock" class="plugin-dock">
+      <div class="dock-content">
+        <!-- Available Plugins Section -->
+        <div id="dock-available-section" class="dock-section dock-available-section">
+          <div class="dock-section-header" id="dock-available-header">
+            <!-- Button will be moved here when dock is open -->
+            <span class="dock-section-title">Available Plugins <span id="dock-available-count" class="dock-count">(0)</span></span>
+            <span class="dock-section-toggle">▼</span>
+          </div>
+          <div id="dock-available-list" class="dock-available-list"></div>
+        </div>
+
+        <!-- Active Plugins Section -->
+        <div id="dock-active-section" class="dock-section dock-active-section">
+          <div id="dock-active-list" class="dock-active-list"></div>
+        </div>
+      </div>
+
+      <!-- Resize Handle -->
+      <div class="dock-resize-handle"></div>
+    </div>
+
+    <!-- Main Content Area -->
+    <div class="content-area">
+      <div class="container">
+        <div id="error"></div>
+        <div id="source-badge"></div>
+        <div id="edit-actions" class="edit-actions" style="display: none;">
+          <!-- For regular editable pages -->
+          <div id="edit-actions-regular" style="display: none;">
+            <button id="edit-page-btn" class="edit-action-btn">Edit</button>
+          </div>
+
+          <!-- For editing source pages -->
+          <div id="edit-actions-editing" style="display: none;">
+            <div class="commit-message-container">
+              <label for="commit-message-input">Commit message:</label>
+              <input type="text"
+                     id="commit-message-input"
+                     class="commit-message-input"
+                     placeholder="Update {filename} via MDNet"
+                     maxlength="100">
+              <span class="commit-message-counter">0/72</span>
+            </div>
+            <div class="edit-actions-buttons">
+              <button id="edit-page-editing-btn" class="edit-action-btn">Edit</button>
+              <button id="publish-page-btn" class="publish-action-btn">Publish</button>
+            </div>
+          </div>
+        </div>
+        <div id="content"></div>
+      </div>
+    </div>
   </div>
+
+  <!-- Dock Backdrop (for overlay mode) -->
+  <div id="dock-backdrop"></div>
 
   <!-- Search Modal -->
   <div id="search-modal">
@@ -975,43 +2968,303 @@
   <div id="settings-modal">
     <div class="settings-container">
       <div class="settings-header">
-        <h2>Source Configuration</h2>
+        <h2>Settings</h2>
         <button id="close-settings" class="close-button">×</button>
       </div>
+
+      <!-- Main Tab Navigation -->
+      <div class="settings-tabs">
+        <button class="settings-tab active" data-tab="sources-main">Sources</button>
+        <button class="settings-tab" data-tab="plugins-main">Plugins</button>
+        <button class="settings-tab" data-tab="themes-main">Themes</button>
+      </div>
+
       <div class="settings-content">
-        <div id="sources-list" class="sources-list">
-          <!-- Dynamic list of configured sources -->
-        </div>
-        <div class="add-source-form">
-          <h3 id="source-form-title">Add New Source</h3>
-          <input type="text" id="source-name" placeholder="Source name (e.g., local-docs, prod-wiki)" pattern="[a-zA-Z0-9_-]+" title="Only letters, numbers, dashes, and underscores. No spaces.">
-          <input type="url" id="source-index-url" placeholder="Index URL (search-index.json)">
-          <input type="url" id="source-content-url" placeholder="Content base URL">
-          <div style="display: flex; gap: 10px;">
-            <button id="add-source-btn">Add Source</button>
-            <button id="cancel-edit-btn" style="display: none;">Cancel</button>
+        <!-- Sources Main Tab -->
+        <div class="settings-tab-content active" id="sources-main-tab-content">
+          <!-- Nested tabs for sources -->
+          <div class="settings-nested-tabs">
+            <button class="settings-nested-tab active" data-nested-tab="sources-list">Sources</button>
+            <button class="settings-nested-tab" data-nested-tab="add-source">Add Source</button>
+            <button class="settings-nested-tab" data-nested-tab="editing" id="editing-tab" style="display: none;">Editing <span id="editing-tab-count" class="tab-badge"></span></button>
           </div>
+
+          <div class="settings-nested-content">
+            <!-- Sources List Sub-tab -->
+            <div class="settings-nested-tab-content active" id="sources-list-tab-content">
+              <div id="sources-list" class="sources-list">
+                <!-- Dynamic list of configured sources -->
+              </div>
+            </div>
+
+            <!-- Add Source Sub-tab -->
+            <div class="settings-nested-tab-content" id="add-source-tab-content">
+              <div class="add-source-form">
+            <h3 id="source-form-title">Add New Source</h3>
+            <input type="text" id="source-name" placeholder="Source name (e.g., local-docs, prod-wiki)" pattern="[a-zA-Z0-9_\-]+" title="Only letters, numbers, dashes, and underscores. No spaces.">
+            <input type="url" id="source-index-url" placeholder="Index URL (search-index.json)">
+            <input type="url" id="source-content-url" placeholder="Content base URL">
+
+            <div class="editable-config" style="margin-top: 15px; padding-top: 15px; border-top: 1px solid var(--border-color);">
+              <label style="display: flex; align-items: center; gap: 8px; margin-bottom: 10px; color: var(--text-primary);">
+                <input type="checkbox" id="source-editable-toggle" style="width: auto;">
+                <span>Enable editing (requires git provider configuration)</span>
+              </label>
+
+              <div id="editable-fields" style="display: none;">
+                <select id="source-provider" style="width: 100%; padding: 10px; margin-bottom: 10px; background: var(--bg-primary); color: var(--text-primary); border: 1px solid var(--border-color); border-radius: 4px; font-family: 'Consolas', 'Monaco', 'Courier New', monospace;">
+                  <option value="">Select provider...</option>
+                  <option value="github">GitHub</option>
+                  <option value="gitlab">GitLab (coming soon)</option>
+                  <option value="gitea">Gitea (coming soon)</option>
+                </select>
+
+                <input type="url" id="source-repo-url" placeholder="Repository URL (e.g., https://github.com/owner/repo)">
+                <input type="text" id="source-branch" placeholder="Branch (e.g., main)">
+                <input type="text" id="source-base-path" placeholder="Base path (optional, e.g., docs/)">
+
+                <div style="background: var(--bg-secondary); border-left: 4px solid var(--accent-orange); padding: 10px; margin: 10px 0; border-radius: 4px;">
+                  <div style="color: var(--text-secondary); font-size: 0.85em; margin-bottom: 5px;">
+                    ⚠️ <strong>Security Notice:</strong> Tokens are stored in your browser's localStorage.
+                    Only use tokens with minimal permissions (repository access only).
+                  </div>
+                  <a href="#" id="token-instructions-link" target="_blank" style="color: var(--accent-blue); font-size: 0.85em;">
+                    How to create a Personal Access Token →
+                  </a>
+                </div>
+
+                <input type="password" id="source-token" placeholder="Personal Access Token (optional, can add later)">
+                <button id="validate-token-btn" type="button" style="background: var(--bg-secondary); color: var(--accent-blue); border: 1px solid var(--border-color); padding: 8px 16px; border-radius: 4px; margin-top: 5px; cursor: pointer; font-family: 'Consolas', 'Monaco', 'Courier New', monospace;">
+                  Validate Token
+                </button>
+                <div id="token-validation-result" style="margin-top: 8px; font-size: 0.85em;"></div>
+              </div>
+            </div>
+
+            <div style="display: flex; gap: 10px;">
+              <button id="add-source-btn">Add Source</button>
+              <button id="cancel-edit-btn" style="display: none;">Cancel</button>
+            </div>
+          </div>
+        </div>
+            <!-- Editing Sources Sub-tab -->
+            <div class="settings-nested-tab-content" id="editing-tab-content">
+              <div id="editing-sources-list" class="editing-sources-list">
+                <!-- Dynamically populated -->
+              </div>
+            </div>
+          </div>
+        </div>
+        <!-- End Sources Main Tab -->
+
+        <!-- Plugins Main Tab -->
+        <div class="settings-tab-content" id="plugins-main-tab-content">
+          <div class="plugin-list" id="plugin-list">
+            <!-- Dynamically populated -->
+          </div>
+          <div class="plugin-install-section">
+            <h3>Install Remote Plugin</h3>
+            <input type="url" id="remote-plugin-url" placeholder="Plugin URL..." disabled>
+            <button id="install-remote-plugin" disabled>Install (Coming Soon)</button>
+          </div>
+        </div>
+        <!-- End Plugins Main Tab -->
+
+        <!-- Themes Main Tab -->
+        <div class="settings-tab-content" id="themes-main-tab-content">
+          <div class="themes-selector">
+            <h3>Theme</h3>
+            <div class="theme-options">
+              <label class="theme-option">
+                <input type="radio" name="theme" value="solarized" checked>
+                <span class="theme-option-label">
+                  <span class="theme-option-name">Solarized</span>
+                  <span class="theme-option-desc">Precision colors for machines and people</span>
+                </span>
+              </label>
+              <label class="theme-option">
+                <input type="radio" name="theme" value="monokai">
+                <span class="theme-option-label">
+                  <span class="theme-option-name">Monokai</span>
+                  <span class="theme-option-desc">Vibrant and bold color scheme</span>
+                </span>
+              </label>
+              <label class="theme-option">
+                <input type="radio" name="theme" value="gruvbox">
+                <span class="theme-option-label">
+                  <span class="theme-option-name">Gruvbox</span>
+                  <span class="theme-option-desc">Retro groove with warm colors</span>
+                </span>
+              </label>
+              <label class="theme-option">
+                <input type="radio" name="theme" value="farout">
+                <span class="theme-option-label">
+                  <span class="theme-option-name">Farout</span>
+                  <span class="theme-option-desc">Warm earthy tones with soft contrast</span>
+                </span>
+              </label>
+            </div>
+
+            <h3 style="margin-top: 30px;">Mode</h3>
+            <div class="theme-mode-toggle">
+              <label class="mode-option">
+                <input type="radio" name="mode" value="dark" checked>
+                <span class="mode-option-label">🌙 Dark</span>
+              </label>
+              <label class="mode-option">
+                <input type="radio" name="mode" value="light">
+                <span class="mode-option-label">☀️ Light</span>
+              </label>
+            </div>
+          </div>
+        </div>
+        <!-- End Themes Main Tab -->
+      </div>
+    </div>
+  </div>
+
+  <!-- Edit Modal -->
+  <div id="edit-modal">
+    <div class="edit-container">
+      <div class="edit-header">
+        <div class="edit-header-info">
+          <div class="edit-filename" id="edit-filename">Editing: filename.md</div>
+          <div class="edit-source" id="edit-source-name">Source: GitHub-Docs</div>
+        </div>
+        <button id="close-edit" class="close-button">×</button>
+      </div>
+      <div class="edit-content">
+        <textarea id="edit-textarea" placeholder="Enter markdown content..."></textarea>
+      </div>
+      <div class="edit-footer">
+        <button id="edit-cancel-btn" class="edit-secondary-btn">Cancel</button>
+        <button id="edit-save-btn" class="edit-primary-btn">Save</button>
+        <button id="edit-save-close-btn" class="edit-primary-btn">Save & Close</button>
+        <button id="edit-view-btn" class="edit-primary-btn">View</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Publish Error Modal -->
+  <div id="publish-error-modal">
+    <div class="publish-error-container">
+      <div class="publish-error-header">
+        <h2>Publish Failed</h2>
+        <button id="close-publish-error" class="close-button">×</button>
+      </div>
+      <div class="publish-error-content">
+        <div class="publish-error-message" id="publish-error-message"></div>
+        <div class="publish-error-details" id="publish-error-details"></div>
+      </div>
+      <div class="publish-error-footer">
+        <button id="publish-update-token-btn" class="edit-primary-btn" style="display: none;">Update Token</button>
+        <button id="publish-retry-btn" class="edit-primary-btn">Retry</button>
+        <button id="publish-cancel-btn" class="edit-secondary-btn">Cancel</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Publish Success Modal -->
+  <div id="publish-success-modal">
+    <div class="publish-success-container">
+      <div class="publish-success-content">
+        <div class="publish-success-icon">✓</div>
+        <div class="publish-success-message">Published successfully!</div>
+        <div class="publish-success-link" id="publish-success-link"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- New Page Modal -->
+  <div id="new-page-modal">
+    <div class="new-page-container">
+      <div class="new-page-header">
+        <h2>Create New Page</h2>
+        <button id="close-new-page" class="close-button">×</button>
+      </div>
+
+      <!-- Step 1: Select Source -->
+      <div class="new-page-content" id="new-page-step-1">
+        <div class="new-page-section">
+          <h3>Select Source</h3>
+          <p class="new-page-description">Choose which source to create the page in:</p>
+          <div id="new-page-source-list" class="new-page-source-list">
+            <!-- Dynamically populated with editable sources -->
+          </div>
+        </div>
+        <div class="new-page-footer">
+          <button id="new-page-cancel-btn" class="edit-secondary-btn">Cancel</button>
+          <button id="new-page-next-btn" class="edit-primary-btn" disabled>Next</button>
+        </div>
+      </div>
+
+      <!-- Step 2: Page Details -->
+      <div class="new-page-content" id="new-page-step-2" style="display: none;">
+        <div class="new-page-section">
+          <h3>Page Details</h3>
+          <div class="new-page-selected-source">
+            Source: <span id="new-page-selected-source-name"></span>
+          </div>
+
+          <label for="new-page-filename">Filename</label>
+          <input type="text"
+                 id="new-page-filename"
+                 placeholder="e.g., getting-started or guides/tutorial"
+                 maxlength="100">
+          <div id="new-page-filename-error" class="new-page-error" style="display: none;"></div>
+          <div id="new-page-filename-preview" class="new-page-preview"></div>
+
+          <label for="new-page-content">Initial Content (optional)</label>
+          <textarea id="new-page-content"
+                    placeholder="Leave blank to use default template..."
+                    rows="10"></textarea>
+        </div>
+        <div class="new-page-footer">
+          <button id="new-page-back-btn" class="edit-secondary-btn">Back</button>
+          <button id="new-page-create-btn" class="edit-primary-btn" disabled>Create</button>
         </div>
       </div>
     </div>
   </div>
 
-  <!-- Plugin Manager Modal -->
-  <div id="plugin-modal">
-    <div class="plugin-container">
-      <div class="plugin-header">
-        <h2>Plugin Manager</h2>
-        <button id="close-plugins" class="close-button">×</button>
+  <!-- Plugin Dashboard Modal -->
+  <!-- Source Map Modal -->
+  <div id="source-map-modal">
+    <div class="source-map-container">
+      <div class="source-map-header">
+        <h2>Source Map</h2>
+        <button id="close-source-map" class="close-button">×</button>
       </div>
-      <div class="plugin-content">
-        <div class="plugin-list" id="plugin-list">
-          <!-- Dynamically populated -->
+
+      <div class="source-map-controls">
+        <div class="source-map-depth-control">
+          <label for="map-depth-slider">Link Depth:</label>
+          <input type="range" id="map-depth-slider" min="0" max="3" value="1" step="1">
+          <span id="map-depth-label">1</span>
         </div>
-        <div class="plugin-install-section">
-          <h3>Install Remote Plugin</h3>
-          <input type="url" id="remote-plugin-url" placeholder="Plugin URL..." disabled>
-          <button id="install-remote-plugin" disabled>Install (Coming Soon)</button>
+
+        <div class="source-map-legend">
+          <div class="legend-item">
+            <span class="legend-icon legend-page"></span>
+            <span>Page</span>
+          </div>
+          <div class="legend-item">
+            <span class="legend-icon legend-tag"></span>
+            <span>Tag</span>
+          </div>
+          <div class="legend-item">
+            <span class="legend-icon legend-current"></span>
+            <span>Current</span>
+          </div>
         </div>
+      </div>
+
+      <div class="source-map-content">
+        <div id="source-map-loading" class="source-map-loading">
+          <div class="loading-spinner"></div>
+          <div>Generating map...</div>
+        </div>
+        <div id="source-map-graph" class="source-map-graph"></div>
       </div>
     </div>
   </div>

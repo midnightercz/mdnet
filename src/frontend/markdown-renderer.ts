@@ -9,28 +9,163 @@ const md = new MarkdownIt({
   typographer: true
 });
 
+// Helper function to check if URL can be converted to local link
+function tryConvertUrlToLocal(url: string, env: any): string | null {
+  if (!env.sources || !env.searchIndex) {
+    return null;
+  }
+
+  // Extract path from URL if it's an absolute URL
+  let urlPath = url;
+  try {
+    // If it looks like an absolute URL, parse it
+    if (url.match(/^https?:\/\//)) {
+      const urlObj = new URL(url);
+      urlPath = urlObj.pathname;
+    } else if (url.startsWith('//')) {
+      const urlObj = new URL('https:' + url);
+      urlPath = urlObj.pathname;
+    }
+  } catch (e) {
+    // If URL parsing fails, use the original URL
+    urlPath = url;
+  }
+
+  // Try each source
+  for (const source of env.sources) {
+    let baseUrl = source.contentBaseUrl;
+
+    // If baseUrl is absolute, extract path
+    try {
+      if (baseUrl.match(/^https?:\/\//)) {
+        const baseUrlObj = new URL(baseUrl);
+        baseUrl = baseUrlObj.pathname;
+      } else if (baseUrl.startsWith('//')) {
+        const baseUrlObj = new URL('https:' + baseUrl);
+        baseUrl = baseUrlObj.pathname;
+      }
+    } catch (e) {
+      // Keep original baseUrl if parsing fails
+    }
+
+    // Ensure baseUrl ends with /
+    if (!baseUrl.endsWith('/')) {
+      baseUrl += '/';
+    }
+
+    if (urlPath.startsWith(baseUrl)) {
+      // Extract the filename part
+      let filename = urlPath.substring(baseUrl.length);
+
+      // Remove .md extension if present
+      if (filename.endsWith('.md')) {
+        filename = filename.substring(0, filename.length - 3);
+      }
+
+      // Remove any query string or hash
+      const queryIndex = filename.indexOf('?');
+      if (queryIndex !== -1) {
+        filename = filename.substring(0, queryIndex);
+      }
+      const hashIndex = filename.indexOf('#');
+      if (hashIndex !== -1) {
+        filename = filename.substring(0, hashIndex);
+      }
+
+      // Check if this page exists in the search index for this source
+      const pageExists = env.searchIndex.some((item: any) =>
+        item.filename === filename && item._source === source.name
+      );
+
+      if (pageExists) {
+        // Convert to local link
+        return `#/${encodeURIComponent(source.name)}/${encodeURIComponent(filename)}`;
+      }
+    }
+  }
+
+  return null;
+}
+
 // Obsidian Wiki-Links and Hashtags Plugin
 // Converts [[Page Name]] to links
 // Converts #tag to clickable tag links
 function wikiLinksPlugin(md: MarkdownIt) {
-  // Pattern for [[link]] or [[link|text]]
-  const wikiLinkPattern = /\[\[([^\]|]+)(\|([^\]]+))?\]\]/g;
   // Pattern for hashtags (word boundary before, alphanumeric/underscore/dash after)
   const hashtagPattern = /(?:^|[^a-zA-Z0-9_-])#([a-zA-Z0-9_-]+)/g;
 
+  // Inline rule for wiki-links - runs before linkify
+  function wikiLinkRule(state: any, silent: boolean) {
+    const max = state.posMax;
+    const start = state.pos;
+
+    // Check if we're at [[
+    if (state.src.charCodeAt(start) !== 0x5B /* [ */ ||
+        state.src.charCodeAt(start + 1) !== 0x5B /* [ */) {
+      return false;
+    }
+
+    // Find the closing ]]
+    let pos = start + 2;
+    let foundEnd = false;
+
+    while (pos < max - 1) {
+      if (state.src.charCodeAt(pos) === 0x5D /* ] */ &&
+          state.src.charCodeAt(pos + 1) === 0x5D /* ] */) {
+        foundEnd = true;
+        break;
+      }
+      pos++;
+    }
+
+    if (!foundEnd) {
+      return false;
+    }
+
+    // Extract content between [[ and ]]
+    const content = state.src.slice(start + 2, pos);
+
+    // Split by | to get target and optional display text
+    const pipeIndex = content.indexOf('|');
+    let linkTarget: string;
+    let linkText: string;
+
+    if (pipeIndex !== -1) {
+      linkTarget = content.slice(0, pipeIndex).trim();
+      linkText = content.slice(pipeIndex + 1).trim();
+    } else {
+      linkTarget = content.trim();
+      linkText = linkTarget;
+    }
+
+    if (!silent) {
+      const token = state.push('wiki_link', '', 0);
+      token.meta = { target: linkTarget, text: linkText };
+      token.markup = '[[';
+    }
+
+    state.pos = pos + 2;
+    return true;
+  }
+
+  // Register the inline rule before linkify
+  md.inline.ruler.before('linkify', 'wiki_link', wikiLinkRule);
+
+  // Renderer for wiki-links - treat as normal internal links (no URL conversion)
+  md.renderer.rules.wiki_link = (tokens, idx, options, env, self) => {
+    const token = tokens[idx];
+    const { target, text } = token.meta;
+
+    // Treat as regular wiki link - Include source in URL: #/source/page
+    const source = env.currentSource || 'Local';
+    return `<a href="#/${encodeURIComponent(source)}/${encodeURIComponent(target)}" class="wiki-link">${md.utils.escapeHtml(text)}</a>`;
+  };
+
+  // Keep text rule for hashtags only
   const defaultRender = md.renderer.rules.text || ((tokens, idx) => tokens[idx].content);
 
   md.renderer.rules.text = (tokens, idx, options, env, self) => {
     let content = tokens[idx].content;
-
-    // Replace wiki-link patterns first
-    content = content.replace(wikiLinkPattern, (match, target, pipe, displayText) => {
-      const linkTarget = target.trim();
-      const linkText = displayText ? displayText.trim() : linkTarget;
-      // Include source in URL: #/source/page
-      const source = env.currentSource || 'Local';
-      return `<a href="#/${encodeURIComponent(source)}/${encodeURIComponent(linkTarget)}" class="wiki-link">${linkText}</a>`;
-    });
 
     // Replace hashtag patterns
     content = content.replace(hashtagPattern, (match, tag) => {
@@ -63,6 +198,14 @@ function anchorLinksPlugin(md: MarkdownIt) {
         // Convert to absolute path: /#/source/currentpage#anchor
         const newHref = `#/${encodeURIComponent(env.currentSource)}/${env.currentPage}${href}`;
         token.attrs![hrefIndex][1] = newHref;
+      }
+      // Check if this is an absolute URL that can be converted to local link
+      else if ((href.startsWith('http://') || href.startsWith('https://') || href.startsWith('//'))) {
+        const localUrl = tryConvertUrlToLocal(href, env);
+        if (localUrl) {
+          token.attrs![hrefIndex][1] = localUrl;
+        }
+        // Otherwise leave as external URL
       }
       // Check if this is a relative .md link
       else if (href.endsWith('.md') && !href.startsWith('http://') && !href.startsWith('https://') && !href.startsWith('//')) {
@@ -260,7 +403,6 @@ function unmaskCodeBlocks(content: string, blocks: string[]): string {
 }
 
 function parseColumns(content: string): ParseColumnsResult {
-  console.log('[parseColumns] Starting to parse columns...');
   // This function now just checks if there are any column markers
   // The actual rendering with multiple sections is handled in renderWithLayout
   const { masked, blocks } = maskCodeBlocks(content);
@@ -269,10 +411,7 @@ function parseColumns(content: string): ParseColumnsResult {
   const layoutStartRegex = /^::md-layout:columns\s*$/gm;
   const startMatches = [...masked.matchAll(layoutStartRegex)];
 
-  console.log('[parseColumns] Found', startMatches.length, 'column section(s)');
-
   if (startMatches.length === 0) {
-    console.log('[parseColumns] No layout markers found');
     return { columns: {}, hasColumns: false, beforeContent: '', afterContent: '' };
   }
 
@@ -286,7 +425,8 @@ function renderWithLayout(
   frontMatter: Record<string, any> | null,
   currentPage: string | undefined,
   currentSource: string | undefined,
-  layoutOverride?: string
+  layoutOverride?: string,
+  additionalEnv?: any
 ): string {
   console.log('[renderWithLayout] Starting render...');
   const layout = layoutOverride || frontMatter?.['md-layout'] || 'simple';
@@ -296,7 +436,7 @@ function renderWithLayout(
   console.log('[renderWithLayout] hasColumns:', hasColumns);
 
   // Environment for markdown-it renderer
-  const env = { currentPage, currentSource };
+  const env = { currentPage, currentSource, ...additionalEnv };
 
   // If no columns found, render based on layout type
   if (!hasColumns) {
@@ -435,11 +575,11 @@ function renderWithLayout(
 }
 
 // Export render function
-export function renderMarkdown(content: string, currentPage?: string, currentSource?: string, layoutOverride?: string): string {
+export function renderMarkdown(content: string, currentPage?: string, currentSource?: string, layoutOverride?: string, additionalEnv?: any): string {
   const { frontMatter, content: markdownContent } = parseFrontMatter(content);
 
   // Render content with layout
-  let html = renderWithLayout(markdownContent, frontMatter, currentPage, currentSource, layoutOverride);
+  let html = renderWithLayout(markdownContent, frontMatter, currentPage, currentSource, layoutOverride, additionalEnv);
 
   // If there's front matter, inject it after the first H1
   if (frontMatter && Object.keys(frontMatter).length > 0) {

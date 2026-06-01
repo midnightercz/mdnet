@@ -17,6 +17,8 @@
   "license": "ISC",
   "description": "",
   "dependencies": {
+    "@types/d3": "^7.4.3",
+    "d3": "^7.9.0",
     "js-yaml": "^4.1.1",
     "markdown-it": "^14.1.1",
     "markdown-it-anchor": "^9.2.0"

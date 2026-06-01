@@ -1,0 +1,16 @@
+{
+  "id": "hello-world",
+  "name": "Hello World",
+  "version": "1.0.0",
+  "description": "A simple test plugin that renders Hello World messages",
+  "author": "MDNet Team",
+  "entryPoint": "worker.js",
+  "type": "renderer",
+  "triggers": ["hello", "test"],
+  "permissions": [],
+  "defaultEnabled": true,
+  "icon": "👋",
+  "config": {
+    "greeting": "Hello"
+  }
+}

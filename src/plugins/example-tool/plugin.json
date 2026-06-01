@@ -1,0 +1,19 @@
+{
+  "id": "example-tool",
+  "name": "Example Tool",
+  "version": "1.0.0",
+  "description": "Example tool plugin demonstrating window functionality",
+  "author": "MDNet Team",
+  "entryPoint": "main-thread.js",
+  "type": "tool",
+  "triggers": [],
+  "permissions": [],
+  "defaultEnabled": false,
+  "icon": "🛠️",
+  "runInMainThread": true,
+  "defaultWidth": 400,
+  "defaultHeight": 300,
+  "minWidth": 300,
+  "minHeight": 200,
+  "config": {}
+}

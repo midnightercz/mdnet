@@ -1,0 +1,21 @@
+{
+  "id": "browsing-history",
+  "name": "History",
+  "version": "1.0.0",
+  "description": "Track your browsing history with clickable links to recently visited pages",
+  "author": "MDNet Team",
+  "entryPoint": "main-thread.js",
+  "type": "tool",
+  "triggers": [],
+  "permissions": [],
+  "defaultEnabled": true,
+  "icon": "🕒",
+  "runInMainThread": true,
+  "defaultWidth": 350,
+  "defaultHeight": 500,
+  "minWidth": 300,
+  "minHeight": 300,
+  "config": {
+    "historyLimit": 20
+  }
+}
