@@ -369,6 +369,11 @@ interface ParseColumnsResult {
   afterContent: string;
 }
 
+// Parse aside markers from content
+interface ParseAsidesResult {
+  hasAsides: boolean;
+}
+
 // Extract code blocks and replace with placeholders
 function maskCodeBlocks(content: string): { masked: string; blocks: string[] } {
   const blocks: string[] = [];
@@ -419,6 +424,99 @@ function parseColumns(content: string): ParseColumnsResult {
   return { columns: {}, hasColumns: true, beforeContent: '', afterContent: '' };
 }
 
+function parseAsides(content: string): ParseAsidesResult {
+  // Check if there are any aside markers
+  const { masked } = maskCodeBlocks(content);
+
+  // Check for aside boundaries
+  const asideStartRegex = /^::md-aside\s*$/gm;
+  const asideEndRegex = /^::md-aside-end\s*$/gm;
+
+  const startMatches = [...masked.matchAll(asideStartRegex)];
+  const endMatches = [...masked.matchAll(asideEndRegex)];
+
+  // Only return true if we have matching pairs
+  if (startMatches.length === 0 || startMatches.length !== endMatches.length) {
+    if (startMatches.length > 0 && startMatches.length !== endMatches.length) {
+      console.warn('[parseAsides] Mismatched aside markers! Found', startMatches.length, 'start and', endMatches.length, 'end markers');
+    }
+    return { hasAsides: false };
+  }
+
+  return { hasAsides: true };
+}
+
+// Render content with asides
+function renderWithAsides(content: string, env: any): string {
+  console.log('[renderWithAsides] Starting render with asides...');
+
+  // Mask code blocks first
+  const { masked, blocks } = maskCodeBlocks(content);
+
+  // Find all aside section boundaries
+  const asideStartRegex = /^::md-aside\s*$/gm;
+  const asideEndRegex = /^::md-aside-end\s*$/gm;
+
+  const startMatches = [...masked.matchAll(asideStartRegex)];
+  const endMatches = [...masked.matchAll(asideEndRegex)];
+
+  console.log('[renderWithAsides] Found', startMatches.length, 'aside pairs');
+
+  // If mismatched, skip rendering asides
+  if (startMatches.length !== endMatches.length) {
+    console.warn('[renderWithAsides] Mismatched aside markers! Falling back to simple render');
+    return md.render(content, env);
+  }
+
+  // Build sections array: [content, type] where type is 'main' or 'aside'
+  const sections: Array<{ content: string; type: 'main' | 'aside' }> = [];
+  let lastIndex = 0;
+
+  for (let i = 0; i < startMatches.length; i++) {
+    const startMatch = startMatches[i];
+    const endMatch = endMatches[i];
+
+    // Content before this aside (main content)
+    if (startMatch.index !== undefined && startMatch.index > lastIndex) {
+      const mainContent = masked.substring(lastIndex, startMatch.index);
+      sections.push({ content: unmaskCodeBlocks(mainContent, blocks), type: 'main' });
+    }
+
+    // Aside content
+    if (startMatch.index !== undefined && endMatch.index !== undefined) {
+      const asideContent = masked.substring(startMatch.index + startMatch[0].length, endMatch.index);
+      sections.push({ content: unmaskCodeBlocks(asideContent, blocks), type: 'aside' });
+      lastIndex = endMatch.index + endMatch[0].length;
+    }
+  }
+
+  // Content after last aside
+  if (lastIndex < masked.length) {
+    const mainContent = masked.substring(lastIndex);
+    sections.push({ content: unmaskCodeBlocks(mainContent, blocks), type: 'main' });
+  }
+
+  console.log('[renderWithAsides] Built', sections.length, 'sections');
+
+  // Render sections with proper alignment markers
+  // We need to insert alignment anchors where asides begin
+  let htmlParts: string[] = [];
+
+  sections.forEach((section, idx) => {
+    if (section.type === 'main') {
+      const renderedMain = md.render(section.content, env);
+      htmlParts.push(`<div class="main-content-section">${renderedMain}</div>`);
+    } else {
+      // Render aside with nested content div for styling
+      const asideRendered = md.render(section.content, env);
+      htmlParts.push(`<div class="aside-block" data-aside-index="${idx}"><div class="aside-content">${asideRendered}</div></div>`);
+    }
+  });
+
+  // Wrap in grid container
+  return `<div class="aside-layout-container">${htmlParts.join('')}</div>`;
+}
+
 // Render content with layout
 function renderWithLayout(
   content: string,
@@ -433,14 +531,27 @@ function renderWithLayout(
   console.log('[renderWithLayout] Layout:', layout);
 
   const { hasColumns } = parseColumns(content);
-  console.log('[renderWithLayout] hasColumns:', hasColumns);
+  const { hasAsides } = parseAsides(content);
+  console.log('[renderWithLayout] hasColumns:', hasColumns, 'hasAsides:', hasAsides);
+
+  // Check for forbidden combination: columns + asides
+  if (hasColumns && hasAsides) {
+    console.warn('[renderWithLayout] Both columns and asides detected - asides inside columns are forbidden, rendering without asides');
+  }
 
   // Environment for markdown-it renderer
   const env = { currentPage, currentSource, ...additionalEnv };
 
-  // If no columns found, render based on layout type
+  // If no columns found, check for asides or render simple
   if (!hasColumns) {
     console.log('[renderWithLayout] No columns found');
+
+    // Check if we have asides to render
+    if (hasAsides) {
+      console.log('[renderWithLayout] Rendering with asides');
+      return renderWithAsides(content, env);
+    }
+
     if (layout === 'simple') {
       console.log('[renderWithLayout] Rendering as simple layout');
       return md.render(content, env);

@@ -71,6 +71,7 @@ let pluginListElement: HTMLElement;
 let panelToggleElement: HTMLElement;
 let toggleButtonsElement: HTMLElement;
 let metadataToggleElement: HTMLElement;
+let asideToggleElement: HTMLElement;
 let editModalElement: HTMLElement;
 let editTextareaElement: HTMLTextAreaElement;
 let editFilenameElement: HTMLElement;
@@ -1268,6 +1269,7 @@ async function init() {
   panelToggleElement = document.getElementById('panel-toggle')!;
   toggleButtonsElement = document.querySelector('.toggle-buttons')!;
   metadataToggleElement = document.getElementById('metadata-toggle')!;
+  asideToggleElement = document.getElementById('aside-toggle')!;
   editModalElement = document.getElementById('edit-modal')!;
   editTextareaElement = document.getElementById('edit-textarea')! as HTMLTextAreaElement;
   editFilenameElement = document.getElementById('edit-filename')!;
@@ -1332,11 +1334,17 @@ async function init() {
   // Initialize metadata visibility from localStorage
   initMetadata();
 
+  // Initialize aside visibility from localStorage
+  initAsides();
+
   // Set up panel toggle
   panelToggleElement.addEventListener('click', togglePanel);
 
   // Set up metadata toggle
   metadataToggleElement.addEventListener('click', toggleMetadata);
+
+  // Set up aside toggle
+  asideToggleElement.addEventListener('click', toggleAsides);
 
   // Set up edit modal
   closeEditElement.addEventListener('click', closeEditModal);
@@ -2058,10 +2066,13 @@ async function renderCurrentPage() {
   const frontMatter = getFrontMatter(currentPageContent);
   const pageWidth = frontMatter?.['md-page-width'];
 
+  // Check if mobile viewport
+  const isMobile = window.innerWidth <= 768;
+
   if (pageWidth) {
-    containerElement.style.width = pageWidth;
+    containerElement.style.width = isMobile ? '100%' : pageWidth;
   } else {
-    containerElement.style.width = '80%';
+    containerElement.style.width = isMobile ? '100%' : '80%';
   }
 
   // Add click handlers to hashtags
@@ -2339,6 +2350,35 @@ function updateMetadataButton(hidden: boolean) {
   } else {
     metadataToggleElement.classList.remove('hidden-metadata');
     metadataToggleElement.title = 'Hide metadata';
+  }
+}
+
+// Initialize aside visibility
+function initAsides() {
+  const hideAsides = localStorage.getItem('hideAsides') === 'true';
+  if (hideAsides) {
+    document.body.classList.add('hide-asides');
+    updateAsideButton(true);
+  } else {
+    updateAsideButton(false);
+  }
+}
+
+// Toggle aside visibility
+function toggleAsides() {
+  const hideAsides = document.body.classList.toggle('hide-asides');
+  localStorage.setItem('hideAsides', hideAsides ? 'true' : 'false');
+  updateAsideButton(hideAsides);
+}
+
+// Update aside button state and title
+function updateAsideButton(hidden: boolean) {
+  if (hidden) {
+    asideToggleElement.classList.add('hidden-asides');
+    asideToggleElement.title = 'Show asides';
+  } else {
+    asideToggleElement.classList.remove('hidden-asides');
+    asideToggleElement.title = 'Hide asides';
   }
 }
 
