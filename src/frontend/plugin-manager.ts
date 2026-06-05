@@ -82,7 +82,7 @@ export class PluginManager {
 
   async discoverPlugins(): Promise<void> {
     try {
-      const response = await fetch('/plugins/registry.json');
+      const response = await fetch('./plugins/registry.json');
       if (!response.ok) {
         console.warn('No plugin registry found, starting with no plugins');
         return;

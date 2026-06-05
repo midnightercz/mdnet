@@ -16,9 +16,23 @@ declare global {
 // Source configuration interface
 interface Source {
   name: string;
-  indexUrl: string;
-  contentBaseUrl: string;
   enabled: boolean;
+
+  // For regular (public) sources
+  indexUrl?: string;
+  contentBaseUrl?: string;
+
+  // For private sources
+  private?: {
+    provider: 'github' | 'gitlab' | 'gitea';
+    repoUrl: string;
+    branch: string;
+    indexPath: string;
+    contentBase: string; // relative path (editable) or full URL (read-only)
+    token?: string;
+  };
+
+  // Legacy field for migration
   editable?: {
     provider: 'github' | 'gitlab' | 'gitea';
     repoUrl: string;
@@ -99,12 +113,17 @@ let publishCancelBtnElement: HTMLButtonElement;
 let closePublishErrorElement: HTMLElement;
 let publishSuccessModalElement: HTMLElement;
 let publishSuccessLinkElement: HTMLElement;
-let editableToggleElement: HTMLInputElement;
-let editableFieldsElement: HTMLElement;
+let regularSourceFieldsElement: HTMLElement;
+let privateToggleElement: HTMLInputElement;
+let privateSourceFieldsElement: HTMLElement;
 let sourceProviderElement: HTMLSelectElement;
 let sourceRepoUrlElement: HTMLInputElement;
 let sourceBranchElement: HTMLInputElement;
-let sourceBasePathElement: HTMLInputElement;
+let sourceIndexPathElement: HTMLInputElement;
+let sourceContentBaseElement: HTMLInputElement;
+let contentBaseIndicatorElement: HTMLElement;
+let contentBaseIconElement: HTMLElement;
+let contentBaseTextElement: HTMLElement;
 let sourceTokenElement: HTMLInputElement;
 let validateTokenBtnElement: HTMLButtonElement;
 let tokenInstructionsLinkElement: HTMLAnchorElement;
@@ -130,6 +149,18 @@ let newPageContentElement: HTMLTextAreaElement;
 let pluginDashboardToggleElement: HTMLElement;
 let leftPanelToggleElement: HTMLElement;
 let leftToggleButtonsElement: HTMLElement;
+let exportSourcesBtnElement: HTMLButtonElement;
+let importSourcesBtnElement: HTMLButtonElement;
+let importSourcesModalElement: HTMLElement;
+let closeImportModalElement: HTMLElement;
+let importMethodRadios: NodeListOf<HTMLInputElement>;
+let importFileSectionElement: HTMLElement;
+let importUrlSectionElement: HTMLElement;
+let importFileInputElement: HTMLInputElement;
+let importUrlInputElement: HTMLInputElement;
+let importFileBtnElement: HTMLButtonElement;
+let importUrlBtnElement: HTMLButtonElement;
+let importStatusElement: HTMLElement;
 
 // Dock manager
 let dockManager: DockManager;
@@ -174,9 +205,45 @@ let newPageSelectedSource: string = '';
 let newPageCurrentStep: number = 1;
 
 // Source management functions
+// Migrate old source format to new format
+function migrateSource(source: Source): Source {
+  // Already migrated or is a virtual editing source
+  if (!source.editable || source.private) {
+    return source;
+  }
+
+  // Migrate from old editable format to new private format
+  const migrated: Source = {
+    name: source.name,
+    enabled: source.enabled,
+    private: {
+      provider: source.editable.provider,
+      repoUrl: source.editable.repoUrl,
+      branch: source.editable.branch,
+      indexPath: 'search-index.json', // Default, old indexUrl was unused
+      contentBase: source.editable.basePath || './', // Use old basePath
+      token: source.editable.token
+    }
+  };
+
+  // Remove legacy editable field
+  delete migrated.editable;
+
+  return migrated;
+}
+
 function loadSources(): Source[] {
   const stored = localStorage.getItem(SOURCES_STORAGE_KEY);
-  const configuredSources = stored ? JSON.parse(stored) : [];
+  const configuredSources: Source[] = stored ? JSON.parse(stored) : [];
+
+  // Migrate old sources
+  const migratedSources = configuredSources.map(migrateSource);
+
+  // Save migrated sources if any changes were made
+  const hasLegacy = configuredSources.some(s => s.editable);
+  if (hasLegacy) {
+    localStorage.setItem(SOURCES_STORAGE_KEY, JSON.stringify(migratedSources));
+  }
 
   // Add virtual editing sources
   const editingPages = loadEditingPages();
@@ -194,13 +261,48 @@ function loadSources(): Source[] {
     enabled: true
   }));
 
-  return [...configuredSources, ...editingSources];
+  return [...migratedSources, ...editingSources];
 }
 
 function saveSources(sources: Source[]): void {
   // Filter out virtual editing sources before saving
   const configuredSources = sources.filter(s => !s.name.startsWith('editing-'));
   localStorage.setItem(SOURCES_STORAGE_KEY, JSON.stringify(configuredSources));
+}
+
+// Helper functions
+function isFullUrl(path: string): boolean {
+  return path.startsWith('http://') || path.startsWith('https://');
+}
+
+function isSourceEditable(source: Source): boolean {
+  if (!source.private) return false;
+  return !isFullUrl(source.private.contentBase);
+}
+
+// Form state management
+let savedRegularFields = { indexUrl: '', contentBaseUrl: '' };
+let savedPrivateFields = { provider: '', repoUrl: '', branch: '', indexPath: '', contentBase: '', token: '' };
+
+function updateContentBaseIndicator(): void {
+  const contentBase = sourceContentBaseElement.value.trim();
+
+  if (!contentBase) {
+    contentBaseIndicatorElement.style.display = 'none';
+    return;
+  }
+
+  contentBaseIndicatorElement.style.display = 'flex';
+
+  if (isFullUrl(contentBase)) {
+    contentBaseIconElement.textContent = '👁️';
+    contentBaseTextElement.textContent = 'Read-only (content from external URL)';
+    contentBaseTextElement.style.color = 'var(--text-secondary)';
+  } else {
+    contentBaseIconElement.textContent = '✏️';
+    contentBaseTextElement.textContent = 'Editable (content from repository)';
+    contentBaseTextElement.style.color = 'var(--accent-green)';
+  }
 }
 
 // Editing pages management functions
@@ -343,7 +445,7 @@ function updateEditActions() {
     // Page from regular source - check if editable
     const source = sources.find(s => s.name === currentPageSource);
 
-    if (source?.editable) {
+    if (source && isSourceEditable(source)) {
       editActionsElement.style.display = 'block';
       editActionsRegularElement.style.display = 'block';
       editActionsEditingElement.style.display = 'none';
@@ -422,10 +524,10 @@ async function handlePublishClick() {
   const sources = loadSources().filter(s => !s.name.startsWith('editing-'));
   const source = sources.find(s => s.name === originalSource);
 
-  if (!source || !source.editable) {
+  if (!source || !isSourceEditable(source)) {
     showPublishError(
       'Cannot publish: Original source not found or not editable',
-      'Please ensure the source configuration is correct.',
+      'Please ensure the source is a private source with relative content base.',
       false
     );
     return;
@@ -441,13 +543,13 @@ async function handlePublishClick() {
 
   try {
     // Get git provider
-    const provider = getProvider(source.editable.provider);
+    const provider = getProvider(source.private!.provider);
     if (!provider) {
-      throw new Error(`Unsupported provider: ${source.editable.provider}`);
+      throw new Error(`Unsupported provider: ${source.private!.provider}`);
     }
 
     // Get token
-    const token = provider.getToken(originalSource) || source.editable.token;
+    const token = provider.getToken(originalSource) || source.private!.token;
     if (!token) {
       showPublishError(
         'No authentication token found',
@@ -458,15 +560,15 @@ async function handlePublishClick() {
     }
 
     // Construct file path
-    // Normalize basePath: remove leading/trailing slashes
-    let normalizedBasePath = source.editable.basePath || '';
-    normalizedBasePath = normalizedBasePath.replace(/^\/+|\/+$/g, '');
-    const filePath = normalizedBasePath ? `${normalizedBasePath}/${currentPageFilename}.md` : `${currentPageFilename}.md`;
+    // Normalize contentBase: remove leading/trailing slashes
+    let normalizedContentBase = source.private!.contentBase || '';
+    normalizedContentBase = normalizedContentBase.replace(/^\/+|\/+$/g, '');
+    const filePath = normalizedContentBase ? `${normalizedContentBase}${currentPageFilename}.md` : `${currentPageFilename}.md`;
 
     // Publish
     const result = await provider.publishFile({
-      repoUrl: source.editable.repoUrl,
-      branch: source.editable.branch,
+      repoUrl: source.private!.repoUrl,
+      branch: source.private!.branch,
       filePath,
       content: editData.content,
       message: commitMessage,
@@ -547,11 +649,11 @@ function updateEditingNotificationBar() {
 
 // New Page Button State
 function updateNewPageButtonState() {
-  const sources = loadSources().filter(s => !s.name.startsWith('editing-') && s.editable);
+  const sources = loadSources().filter(s => !s.name.startsWith('editing-') && isSourceEditable(s));
 
   if (sources.length === 0) {
     newPageToggleElement.setAttribute('disabled', 'true');
-    newPageToggleElement.title = 'No editable sources configured';
+    newPageToggleElement.title = 'No sources configured for editing. Add a private source with relative content base.';
   } else {
     newPageToggleElement.removeAttribute('disabled');
     newPageToggleElement.title = 'Create new page';
@@ -592,10 +694,10 @@ function closeNewPageModal() {
 }
 
 function renderNewPageSources() {
-  const sources = loadSources().filter(s => !s.name.startsWith('editing-') && s.editable);
+  const sources = loadSources().filter(s => !s.name.startsWith('editing-') && isSourceEditable(s));
 
   if (sources.length === 0) {
-    newPageSourceListElement.innerHTML = '<div style="color: var(--text-secondary); padding: 15px; text-align: center;">No editable sources configured. Please add a source with git provider configuration.</div>';
+    newPageSourceListElement.innerHTML = '<div style="color: var(--text-secondary); padding: 15px; text-align: center;">No sources configured for editing. Please add a private source with relative content base.</div>';
     return;
   }
 
@@ -605,7 +707,7 @@ function renderNewPageSources() {
       <div class="new-page-source-item ${isSelected ? 'selected' : ''}" data-source="${source.name}">
         <div class="new-page-source-item-name">${source.name}</div>
         <div class="new-page-source-item-info">
-          ${source.editable.provider} - ${source.editable.repoUrl}
+          ${source.private!.provider} - ${source.private!.repoUrl}
         </div>
       </div>
     `;
@@ -760,10 +862,10 @@ function updateFilenamePreview() {
   const sources = loadSources().filter(s => !s.name.startsWith('editing-'));
   const source = sources.find(s => s.name === newPageSelectedSource);
 
-  if (source && source.editable) {
-    let basePath = source.editable.basePath || '';
-    basePath = basePath.replace(/^\/+|\/+$/g, ''); // Normalize
-    const fullPath = basePath ? `${basePath}/${filename}.md` : `${filename}.md`;
+  if (source && source.private) {
+    let contentBase = source.private.contentBase || '';
+    contentBase = contentBase.replace(/^\/+|\/+$/g, ''); // Normalize
+    const fullPath = contentBase ? `${contentBase}${filename}.md` : `${filename}.md`;
     newPageFilenamePreviewElement.innerHTML = `Full path: <strong>${fullPath}</strong>`;
   }
 
@@ -975,18 +1077,24 @@ function loadEditingSourceIndexes(): void {
   }
 }
 
-function addSource(name: string, indexUrl: string, contentBaseUrl: string, editableConfig?: any): void {
+function addSource(name: string, indexUrl: string, contentBaseUrl: string, privateConfig?: any): void {
   const sources = loadSources().filter(s => !s.name.startsWith('editing-'));
-  const newSource: Source = { name, indexUrl, contentBaseUrl, enabled: true };
+  const newSource: Source = { name, enabled: true };
 
-  if (editableConfig && editableConfig.enabled) {
-    newSource.editable = {
-      provider: editableConfig.provider,
-      repoUrl: editableConfig.repoUrl,
-      branch: editableConfig.branch,
-      basePath: editableConfig.basePath,
-      token: editableConfig.token
+  if (privateConfig && privateConfig.enabled) {
+    // Private source
+    newSource.private = {
+      provider: privateConfig.provider,
+      repoUrl: privateConfig.repoUrl,
+      branch: privateConfig.branch,
+      indexPath: privateConfig.indexPath || 'search-index.json',
+      contentBase: privateConfig.contentBase || './',
+      token: privateConfig.token
     };
+  } else {
+    // Regular source
+    newSource.indexUrl = indexUrl;
+    newSource.contentBaseUrl = contentBaseUrl;
   }
 
   sources.push(newSource);
@@ -996,20 +1104,26 @@ function addSource(name: string, indexUrl: string, contentBaseUrl: string, edita
   updateNewPageButtonState();
 }
 
-function updateSource(index: number, name: string, indexUrl: string, contentBaseUrl: string, editableConfig?: any): void {
+function updateSource(index: number, name: string, indexUrl: string, contentBaseUrl: string, privateConfig?: any): void {
   const sources = loadSources().filter(s => !s.name.startsWith('editing-'));
   if (index >= 0 && index < sources.length) {
     const currentEnabled = sources[index].enabled;
-    const updatedSource: Source = { name, indexUrl, contentBaseUrl, enabled: currentEnabled };
+    const updatedSource: Source = { name, enabled: currentEnabled };
 
-    if (editableConfig && editableConfig.enabled) {
-      updatedSource.editable = {
-        provider: editableConfig.provider,
-        repoUrl: editableConfig.repoUrl,
-        branch: editableConfig.branch,
-        basePath: editableConfig.basePath,
-        token: editableConfig.token
+    if (privateConfig && privateConfig.enabled) {
+      // Private source
+      updatedSource.private = {
+        provider: privateConfig.provider,
+        repoUrl: privateConfig.repoUrl,
+        branch: privateConfig.branch,
+        indexPath: privateConfig.indexPath || 'search-index.json',
+        contentBase: privateConfig.contentBase || './',
+        token: privateConfig.token
       };
+    } else {
+      // Regular source
+      updatedSource.indexUrl = indexUrl;
+      updatedSource.contentBaseUrl = contentBaseUrl;
     }
 
     sources[index] = updatedSource;
@@ -1032,30 +1146,40 @@ function editSource(index: number): void {
     const contentUrlInput = document.getElementById('source-content-url') as HTMLInputElement;
 
     nameInput.value = source.name;
-    indexUrlInput.value = source.indexUrl;
-    contentUrlInput.value = source.contentBaseUrl;
 
-    // Populate editable configuration if present
-    if (source.editable) {
-      editableToggleElement.checked = true;
-      editableFieldsElement.style.display = 'block';
+    // Populate private source configuration if present
+    if (source.private) {
+      privateToggleElement.checked = true;
+      regularSourceFieldsElement.style.display = 'none';
+      privateSourceFieldsElement.style.display = 'block';
 
-      sourceProviderElement.value = source.editable.provider || '';
-      sourceRepoUrlElement.value = source.editable.repoUrl || '';
-      sourceBranchElement.value = source.editable.branch || '';
-      sourceBasePathElement.value = source.editable.basePath || '';
-      sourceTokenElement.value = source.editable.token || '';
+      indexUrlInput.value = '';
+      contentUrlInput.value = '';
+
+      sourceProviderElement.value = source.private.provider || '';
+      sourceRepoUrlElement.value = source.private.repoUrl || '';
+      sourceBranchElement.value = source.private.branch || '';
+      sourceIndexPathElement.value = source.private.indexPath || 'search-index.json';
+      sourceContentBaseElement.value = source.private.contentBase || './';
+      sourceTokenElement.value = source.private.token || '';
 
       // Update token instructions link if provider is selected
-      if (source.editable.provider) {
-        const provider = getProvider(source.editable.provider);
+      if (source.private.provider) {
+        const provider = getProvider(source.private.provider);
         if (provider) {
           tokenInstructionsLinkElement.href = provider.getTokenInstructions();
         }
       }
+
+      updateContentBaseIndicator();
     } else {
-      editableToggleElement.checked = false;
-      editableFieldsElement.style.display = 'none';
+      // Regular source
+      privateToggleElement.checked = false;
+      regularSourceFieldsElement.style.display = 'block';
+      privateSourceFieldsElement.style.display = 'none';
+
+      indexUrlInput.value = source.indexUrl || '';
+      contentUrlInput.value = source.contentBaseUrl || '';
     }
 
     // Update button text and show cancel button
@@ -1093,15 +1217,18 @@ function cancelEdit(): void {
   indexUrlInput.value = '';
   contentUrlInput.value = '';
 
-  // Clear editable configuration fields
-  editableToggleElement.checked = false;
-  editableFieldsElement.style.display = 'none';
+  // Clear private source configuration fields
+  privateToggleElement.checked = false;
+  regularSourceFieldsElement.style.display = 'block';
+  privateSourceFieldsElement.style.display = 'none';
   sourceProviderElement.value = '';
   sourceRepoUrlElement.value = '';
   sourceBranchElement.value = '';
-  sourceBasePathElement.value = '';
+  sourceIndexPathElement.value = 'search-index.json';
+  sourceContentBaseElement.value = '';
   sourceTokenElement.value = '';
   tokenValidationResultElement.textContent = '';
+  contentBaseIndicatorElement.style.display = 'none';
 
   // Reset button text and hide cancel button
   const submitBtn = document.getElementById('add-source-btn')!;
@@ -1147,6 +1274,204 @@ function toggleSourceEnabled(index: number): void {
   }
 }
 
+// Export/Import functions
+function exportSources(): void {
+  const sources = loadSources().filter(s => !s.name.startsWith('editing-'));
+
+  // Create export object with metadata
+  const exportData = {
+    version: '1.0',
+    exportDate: new Date().toISOString(),
+    sources: sources
+  };
+
+  // Convert to JSON
+  const jsonString = JSON.stringify(exportData, null, 2);
+
+  // Create blob and download
+  const blob = new Blob([jsonString], { type: 'application/json' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `mdnet-sources-${new Date().toISOString().split('T')[0]}.json`;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+
+  console.log('Sources exported successfully');
+}
+
+function validateSourcesImport(data: any): { valid: boolean; error?: string; sources?: Source[] } {
+  // Check if data is an object
+  if (!data || typeof data !== 'object') {
+    return { valid: false, error: 'Invalid JSON format' };
+  }
+
+  // Support both old format (array) and new format (object with metadata)
+  let sourcesToImport: any[];
+
+  if (Array.isArray(data)) {
+    // Old format: direct array of sources
+    sourcesToImport = data;
+  } else if (data.sources && Array.isArray(data.sources)) {
+    // New format: object with sources array
+    sourcesToImport = data.sources;
+  } else {
+    return { valid: false, error: 'Invalid format: expected array of sources or object with sources property' };
+  }
+
+  // Validate each source
+  for (const source of sourcesToImport) {
+    if (!source.name || typeof source.name !== 'string') {
+      return { valid: false, error: 'Invalid source: missing or invalid name' };
+    }
+
+    if (source.enabled !== undefined && typeof source.enabled !== 'boolean') {
+      return { valid: false, error: `Invalid source "${source.name}": enabled must be boolean` };
+    }
+
+    // Validate source has either public or private configuration
+    const hasPublic = source.indexUrl && source.contentBaseUrl;
+    const hasPrivate = source.private && source.private.provider && source.private.repoUrl && source.private.branch;
+
+    if (!hasPublic && !hasPrivate) {
+      return { valid: false, error: `Invalid source "${source.name}": must have either public (indexUrl/contentBaseUrl) or private configuration` };
+    }
+  }
+
+  return { valid: true, sources: sourcesToImport };
+}
+
+function importSourcesFromData(data: any): void {
+  const validation = validateSourcesImport(data);
+
+  if (!validation.valid) {
+    showImportStatus('error', validation.error || 'Validation failed');
+    return;
+  }
+
+  const currentSources = loadSources().filter(s => !s.name.startsWith('editing-'));
+  const currentSourceNames = new Set(currentSources.map(s => s.name));
+  const importedSources = validation.sources!;
+
+  let addedCount = 0;
+  let skippedCount = 0;
+  const skippedNames: string[] = [];
+
+  for (const source of importedSources) {
+    if (currentSourceNames.has(source.name)) {
+      skippedCount++;
+      skippedNames.push(source.name);
+    } else {
+      // Ensure enabled field exists
+      if (source.enabled === undefined) {
+        source.enabled = true;
+      }
+      currentSources.push(source);
+      addedCount++;
+    }
+  }
+
+  // Save updated sources
+  saveSources(currentSources);
+  loadAllSearchIndexes();
+  renderSourcesList();
+  updateNewPageButtonState();
+
+  // Show result
+  let message = `✓ Successfully imported ${addedCount} source(s)`;
+  if (skippedCount > 0) {
+    message += `\n⚠ Skipped ${skippedCount} duplicate(s): ${skippedNames.join(', ')}`;
+  }
+
+  showImportStatus('success', message);
+
+  // Close modal after 2 seconds
+  setTimeout(() => {
+    closeImportModal();
+  }, 2000);
+}
+
+async function importSourcesFromFile(): Promise<void> {
+  const file = importFileInputElement.files?.[0];
+
+  if (!file) {
+    showImportStatus('error', 'Please select a file');
+    return;
+  }
+
+  try {
+    const text = await file.text();
+    const data = JSON.parse(text);
+    importSourcesFromData(data);
+  } catch (error: any) {
+    showImportStatus('error', `Failed to read file: ${error.message}`);
+  }
+}
+
+async function importSourcesFromUrl(): Promise<void> {
+  const url = importUrlInputElement.value.trim();
+
+  if (!url) {
+    showImportStatus('error', 'Please enter a URL');
+    return;
+  }
+
+  if (!url.startsWith('http://') && !url.startsWith('https://')) {
+    showImportStatus('error', 'URL must start with http:// or https://');
+    return;
+  }
+
+  showImportStatus('info', 'Fetching sources from URL...');
+
+  try {
+    const response = await fetch(url);
+
+    if (!response.ok) {
+      throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+    }
+
+    const data = await response.json();
+    importSourcesFromData(data);
+  } catch (error: any) {
+    showImportStatus('error', `Failed to fetch from URL: ${error.message}`);
+  }
+}
+
+function showImportStatus(type: 'success' | 'error' | 'info', message: string): void {
+  importStatusElement.style.display = 'block';
+
+  if (type === 'success') {
+    importStatusElement.style.background = 'var(--accent-green)';
+    importStatusElement.style.color = 'var(--bg-primary)';
+    importStatusElement.style.borderLeft = '4px solid var(--accent-green)';
+  } else if (type === 'error') {
+    importStatusElement.style.background = 'var(--bg-secondary)';
+    importStatusElement.style.color = 'var(--accent-red)';
+    importStatusElement.style.borderLeft = '4px solid var(--accent-red)';
+  } else {
+    importStatusElement.style.background = 'var(--bg-secondary)';
+    importStatusElement.style.color = 'var(--accent-blue)';
+    importStatusElement.style.borderLeft = '4px solid var(--accent-blue)';
+  }
+
+  importStatusElement.textContent = message;
+  importStatusElement.style.whiteSpace = 'pre-line';
+}
+
+function openImportModal(): void {
+  importSourcesModalElement.style.display = 'flex';
+  importStatusElement.style.display = 'none';
+  importFileInputElement.value = '';
+  importUrlInputElement.value = '';
+}
+
+function closeImportModal(): void {
+  importSourcesModalElement.style.display = 'none';
+  importStatusElement.style.display = 'none';
+}
+
 function renderSourcesList(): void {
   // Filter out editing sources - they're shown in the editing sources tab
   const sources = loadSources().filter(s => !s.name.startsWith('editing-'));
@@ -1157,28 +1482,54 @@ function renderSourcesList(): void {
     return;
   }
 
-  container.innerHTML = sources.map((source, index) => `
-    <div class="source-item ${source.enabled ? '' : 'disabled'}">
-      <div class="source-info">
-        <strong>${source.name}</strong>
-        <div class="source-urls">
-          <div>Index: ${source.indexUrl}</div>
-          <div>Content: ${source.contentBaseUrl}</div>
+  container.innerHTML = sources.map((source, index) => {
+    let badgeHtml = '';
+    let detailsHtml = '';
+
+    if (source.private) {
+      // Private source
+      const editable = isSourceEditable(source);
+      const editableIcon = editable ? '✏️' : '👁️';
+      const editableText = editable ? 'Editable' : 'Read-only';
+      badgeHtml = `<span style="background: var(--accent-blue); color: white; padding: 2px 8px; border-radius: 3px; font-size: 0.75em; margin-left: 8px;">🔒 Private</span>`;
+      detailsHtml = `
+        <div>Provider: ${source.private.provider}</div>
+        <div>Repository: ${source.private.repoUrl}</div>
+        <div>Branch: ${source.private.branch}</div>
+        <div>Index: ${source.private.indexPath}</div>
+        <div>Content: ${source.private.contentBase} ${editableIcon} <em style="color: ${editable ? 'var(--accent-green)' : 'var(--text-secondary)'}">${editableText}</em></div>
+      `;
+    } else {
+      // Regular source
+      badgeHtml = `<span style="background: var(--bg-secondary); color: var(--text-primary); padding: 2px 8px; border-radius: 3px; font-size: 0.75em; margin-left: 8px; border: 1px solid var(--border-color);">📄 Public</span>`;
+      detailsHtml = `
+        <div>Index: ${source.indexUrl || 'N/A'}</div>
+        <div>Content: ${source.contentBaseUrl || 'N/A'}</div>
+      `;
+    }
+
+    return `
+      <div class="source-item ${source.enabled ? '' : 'disabled'}">
+        <div class="source-info">
+          <strong>${source.name}</strong>${badgeHtml}
+          <div class="source-urls" style="font-size: 0.85em; color: var(--text-secondary); margin-top: 5px;">
+            ${detailsHtml}
+          </div>
+        </div>
+        <div class="source-actions">
+          <label class="source-toggle">
+            <input type="checkbox"
+                   class="source-toggle-checkbox"
+                   data-index="${index}"
+                   ${source.enabled ? 'checked' : ''}>
+            <span class="source-toggle-label">${source.enabled ? 'Enabled' : 'Disabled'}</span>
+          </label>
+          <button class="edit-source-btn" data-index="${index}">Edit</button>
+          <button class="remove-source-btn" data-index="${index}">Remove</button>
         </div>
       </div>
-      <div class="source-actions">
-        <label class="source-toggle">
-          <input type="checkbox"
-                 class="source-toggle-checkbox"
-                 data-index="${index}"
-                 ${source.enabled ? 'checked' : ''}>
-          <span class="source-toggle-label">${source.enabled ? 'Enabled' : 'Disabled'}</span>
-        </label>
-        <button class="edit-source-btn" data-index="${index}">Edit</button>
-        <button class="remove-source-btn" data-index="${index}">Remove</button>
-      </div>
-    </div>
-  `).join('');
+    `;
+  }).join('');
 
   // Attach toggle handlers
   container.querySelectorAll('.source-toggle-checkbox').forEach(checkbox => {
@@ -1297,12 +1648,17 @@ async function init() {
   closePublishErrorElement = document.getElementById('close-publish-error')!;
   publishSuccessModalElement = document.getElementById('publish-success-modal')!;
   publishSuccessLinkElement = document.getElementById('publish-success-link')!;
-  editableToggleElement = document.getElementById('source-editable-toggle')! as HTMLInputElement;
-  editableFieldsElement = document.getElementById('editable-fields')!;
+  regularSourceFieldsElement = document.getElementById('regular-source-fields')!;
+  privateToggleElement = document.getElementById('source-private-toggle')! as HTMLInputElement;
+  privateSourceFieldsElement = document.getElementById('private-source-fields')!;
   sourceProviderElement = document.getElementById('source-provider')! as HTMLSelectElement;
   sourceRepoUrlElement = document.getElementById('source-repo-url')! as HTMLInputElement;
   sourceBranchElement = document.getElementById('source-branch')! as HTMLInputElement;
-  sourceBasePathElement = document.getElementById('source-base-path')! as HTMLInputElement;
+  sourceIndexPathElement = document.getElementById('source-index-path')! as HTMLInputElement;
+  sourceContentBaseElement = document.getElementById('source-content-base')! as HTMLInputElement;
+  contentBaseIndicatorElement = document.getElementById('content-base-indicator')!;
+  contentBaseIconElement = document.getElementById('content-base-icon')!;
+  contentBaseTextElement = document.getElementById('content-base-text')!;
   sourceTokenElement = document.getElementById('source-token')! as HTMLInputElement;
   validateTokenBtnElement = document.getElementById('validate-token-btn')! as HTMLButtonElement;
   tokenInstructionsLinkElement = document.getElementById('token-instructions-link')! as HTMLAnchorElement;
@@ -1328,6 +1684,18 @@ async function init() {
   newPageFilenameErrorElement = document.getElementById('new-page-filename-error')!;
   newPageFilenamePreviewElement = document.getElementById('new-page-filename-preview')!;
   newPageContentElement = document.getElementById('new-page-content')! as HTMLTextAreaElement;
+  exportSourcesBtnElement = document.getElementById('export-sources-btn')! as HTMLButtonElement;
+  importSourcesBtnElement = document.getElementById('import-sources-btn')! as HTMLButtonElement;
+  importSourcesModalElement = document.getElementById('import-sources-modal')!;
+  closeImportModalElement = document.getElementById('close-import-modal')!;
+  importMethodRadios = document.querySelectorAll('input[name="import-method"]')! as NodeListOf<HTMLInputElement>;
+  importFileSectionElement = document.getElementById('import-file-section')!;
+  importUrlSectionElement = document.getElementById('import-url-section')!;
+  importFileInputElement = document.getElementById('import-file-input')! as HTMLInputElement;
+  importUrlInputElement = document.getElementById('import-url-input')! as HTMLInputElement;
+  importFileBtnElement = document.getElementById('import-file-btn')! as HTMLButtonElement;
+  importUrlBtnElement = document.getElementById('import-url-btn')! as HTMLButtonElement;
+  importStatusElement = document.getElementById('import-status')!;
 
   // Initialize theme from localStorage
   initTheme();
@@ -1403,9 +1771,54 @@ async function init() {
   });
 
   // Set up editable config form
-  editableToggleElement.addEventListener('change', () => {
-    editableFieldsElement.style.display = editableToggleElement.checked ? 'block' : 'none';
+  privateToggleElement.addEventListener('change', () => {
+    if (privateToggleElement.checked) {
+      // Save regular fields
+      const indexUrlInput = document.getElementById('source-index-url') as HTMLInputElement;
+      const contentUrlInput = document.getElementById('source-content-url') as HTMLInputElement;
+      savedRegularFields.indexUrl = indexUrlInput.value;
+      savedRegularFields.contentBaseUrl = contentUrlInput.value;
+
+      // Clear regular fields
+      indexUrlInput.value = '';
+      contentUrlInput.value = '';
+
+      // Hide regular, show private
+      regularSourceFieldsElement.style.display = 'none';
+      privateSourceFieldsElement.style.display = 'block';
+
+      // Restore saved private fields
+      sourceProviderElement.value = savedPrivateFields.provider;
+      sourceRepoUrlElement.value = savedPrivateFields.repoUrl;
+      sourceBranchElement.value = savedPrivateFields.branch;
+      sourceIndexPathElement.value = savedPrivateFields.indexPath || 'search-index.json';
+      sourceContentBaseElement.value = savedPrivateFields.contentBase;
+      sourceTokenElement.value = savedPrivateFields.token;
+
+      updateContentBaseIndicator();
+    } else {
+      // Save private fields
+      savedPrivateFields.provider = sourceProviderElement.value;
+      savedPrivateFields.repoUrl = sourceRepoUrlElement.value;
+      savedPrivateFields.branch = sourceBranchElement.value;
+      savedPrivateFields.indexPath = sourceIndexPathElement.value;
+      savedPrivateFields.contentBase = sourceContentBaseElement.value;
+      savedPrivateFields.token = sourceTokenElement.value;
+
+      // Show regular, hide private
+      regularSourceFieldsElement.style.display = 'block';
+      privateSourceFieldsElement.style.display = 'none';
+
+      // Restore saved regular fields
+      const indexUrlInput = document.getElementById('source-index-url') as HTMLInputElement;
+      const contentUrlInput = document.getElementById('source-content-url') as HTMLInputElement;
+      indexUrlInput.value = savedRegularFields.indexUrl;
+      contentUrlInput.value = savedRegularFields.contentBaseUrl;
+    }
   });
+
+  // Update indicator when content base changes
+  sourceContentBaseElement.addEventListener('input', updateContentBaseIndicator);
 
   sourceProviderElement.addEventListener('change', () => {
     const provider = getProvider(sourceProviderElement.value);
@@ -1476,6 +1889,32 @@ async function init() {
   newPageModalElement.addEventListener('click', (e) => {
     if (e.target === newPageModalElement) closeNewPageModal();
   });
+
+  // Set up export/import sources
+  exportSourcesBtnElement.addEventListener('click', exportSources);
+  importSourcesBtnElement.addEventListener('click', openImportModal);
+  closeImportModalElement.addEventListener('click', closeImportModal);
+  importSourcesModalElement.addEventListener('click', (e) => {
+    if (e.target === importSourcesModalElement) closeImportModal();
+  });
+
+  // Import method radio buttons
+  importMethodRadios.forEach(radio => {
+    radio.addEventListener('change', (e) => {
+      const method = (e.target as HTMLInputElement).value;
+      if (method === 'file') {
+        importFileSectionElement.style.display = 'block';
+        importUrlSectionElement.style.display = 'none';
+      } else {
+        importFileSectionElement.style.display = 'none';
+        importUrlSectionElement.style.display = 'block';
+      }
+      importStatusElement.style.display = 'none';
+    });
+  });
+
+  importFileBtnElement.addEventListener('click', importSourcesFromFile);
+  importUrlBtnElement.addEventListener('click', importSourcesFromUrl);
 
   // Initialize plugin manager
   window.pluginManager = new PluginManager();
@@ -1567,6 +2006,9 @@ async function init() {
       if (newPageModalElement.classList.contains('active')) {
         closeNewPageModal();
       }
+      if (importSourcesModalElement.style.display === 'flex') {
+        closeImportModal();
+      }
     }
 
     // Ctrl/Cmd+Shift+B - Add bookmark
@@ -1637,15 +2079,13 @@ async function init() {
     const contentUrlInput = document.getElementById('source-content-url') as HTMLInputElement;
 
     const name = nameInput.value.trim();
-    const indexUrl = indexUrlInput.value.trim();
-    const contentBaseUrl = contentUrlInput.value.trim();
 
-    if (!name || !indexUrl || !contentBaseUrl) {
-      alert('All fields are required');
+    // Validate source name - no spaces allowed (use dashes or underscores instead)
+    if (!name) {
+      alert('Source name is required');
       return;
     }
 
-    // Validate source name - no spaces allowed (use dashes or underscores instead)
     if (name.includes(' ')) {
       alert('Source name cannot contain spaces. Please use dashes (-) or underscores (_) instead.\nExample: "local-sop-2" or "local_sop_2"');
       return;
@@ -1657,16 +2097,17 @@ async function init() {
       return;
     }
 
-    // Ensure contentBaseUrl ends with /
-    const normalizedContentUrl = contentBaseUrl.endsWith('/') ? contentBaseUrl : contentBaseUrl + '/';
+    let privateConfig = null;
+    let indexUrl = '';
+    let contentBaseUrl = '';
 
-    // Gather editable config if enabled
-    let editableConfig = null;
-    if (editableToggleElement.checked) {
+    if (privateToggleElement.checked) {
+      // Private source validation
       const provider = sourceProviderElement.value;
       const repoUrl = sourceRepoUrlElement.value.trim();
       const branch = sourceBranchElement.value.trim();
-      const basePath = sourceBasePathElement.value.trim();
+      const indexPath = sourceIndexPathElement.value.trim();
+      const contentBase = sourceContentBaseElement.value.trim();
       const token = sourceTokenElement.value.trim();
 
       if (!provider) {
@@ -1674,35 +2115,80 @@ async function init() {
         return;
       }
 
-      editableConfig = {
+      if (!repoUrl || !repoUrl.startsWith('https://')) {
+        alert('Please provide a valid repository URL starting with https://');
+        return;
+      }
+
+      if (!branch) {
+        alert('Please specify a branch');
+        return;
+      }
+
+      if (!indexPath) {
+        alert('Please specify the search index path');
+        return;
+      }
+
+      // Normalize paths
+      let normalizedIndexPath = indexPath.startsWith('/') ? indexPath.substring(1) : indexPath;
+      let normalizedContentBase = contentBase || './';
+
+      // Normalize content base (add trailing slash if relative path)
+      if (!isFullUrl(normalizedContentBase) && !normalizedContentBase.endsWith('/')) {
+        normalizedContentBase = normalizedContentBase + '/';
+      }
+
+      // Strip leading slash from content base if present
+      if (!isFullUrl(normalizedContentBase) && normalizedContentBase.startsWith('/')) {
+        normalizedContentBase = normalizedContentBase.substring(1);
+      }
+
+      privateConfig = {
         enabled: true,
         provider,
         repoUrl,
         branch,
-        basePath,
+        indexPath: normalizedIndexPath,
+        contentBase: normalizedContentBase,
         token
       };
+    } else {
+      // Regular source validation
+      indexUrl = indexUrlInput.value.trim();
+      contentBaseUrl = contentUrlInput.value.trim();
+
+      if (!indexUrl || !contentBaseUrl) {
+        alert('Index URL and Content base URL are required');
+        return;
+      }
+
+      // Ensure contentBaseUrl ends with /
+      contentBaseUrl = contentBaseUrl.endsWith('/') ? contentBaseUrl : contentBaseUrl + '/';
     }
 
     // Check if we're editing or adding
     if (editingSourceIndex !== null) {
-      updateSource(editingSourceIndex, name, indexUrl, normalizedContentUrl, editableConfig);
+      updateSource(editingSourceIndex, name, indexUrl, contentBaseUrl, privateConfig);
       cancelEdit();
     } else {
-      addSource(name, indexUrl, normalizedContentUrl, editableConfig);
+      addSource(name, indexUrl, contentBaseUrl, privateConfig);
 
       // Clear form
       nameInput.value = '';
       indexUrlInput.value = '';
       contentUrlInput.value = '';
-      editableToggleElement.checked = false;
-      editableFieldsElement.style.display = 'none';
+      privateToggleElement.checked = false;
+      regularSourceFieldsElement.style.display = 'block';
+      privateSourceFieldsElement.style.display = 'none';
       sourceProviderElement.value = '';
       sourceRepoUrlElement.value = '';
       sourceBranchElement.value = '';
-      sourceBasePathElement.value = '';
+      sourceIndexPathElement.value = 'search-index.json';
+      sourceContentBaseElement.value = '';
       sourceTokenElement.value = '';
       tokenValidationResultElement.textContent = '';
+      contentBaseIndicatorElement.style.display = 'none';
 
       // Switch to sources-list nested tab to show the newly added source
       settingsNestedTabElements.forEach(t => t.classList.remove('active'));
@@ -1941,8 +2427,8 @@ async function fetchPrivateImages(
 ): Promise<{ [url: string]: string }> {
   const privateImages: { [url: string]: string } = {};
 
-  // Only process if GitHub source with token
-  if (!source.editable || source.editable.provider !== 'github') {
+  // Only process if GitHub private source with token
+  if (!source.private || source.private.provider !== 'github') {
     return privateImages;
   }
 
@@ -1951,7 +2437,7 @@ async function fetchPrivateImages(
     return privateImages;
   }
 
-  const token = provider.getToken(sourceName) || source.editable.token;
+  const token = provider.getToken(sourceName) || source.private.token;
   if (!token) {
     return privateImages;
   }
@@ -2003,17 +2489,20 @@ async function fetchPrivateImages(
         }
       }
 
-      // Add base path if configured
-      if (source.editable.basePath) {
-        filePath = `${source.editable.basePath}/${filePath}`;
+      // Add content base if configured (only if relative)
+      if (source.private.contentBase && !isFullUrl(source.private.contentBase)) {
+        const normalizedContentBase = source.private.contentBase.replace(/^\/+|\/+$/g, '');
+        if (normalizedContentBase) {
+          filePath = `${normalizedContentBase}/${filePath}`;
+        }
       }
 
       console.log(`Fetching image from GitHub: ${filePath}`);
 
       // Fetch image via GitHub API
       const result = await (provider as any).fetchBinaryFileAsDataUrl(
-        source.editable.repoUrl,
-        source.editable.branch,
+        source.private.repoUrl,
+        source.private.branch,
         filePath,
         token
       );
@@ -2091,25 +2580,43 @@ async function loadPage(sourceName: string, filename: string, anchor?: string, f
       console.log(`Loading page "${filename}" from source "${sourceName}": ${contentUrl}`);
     } else {
       // Fallback: construct URL from source
-      contentUrl = `${source.contentBaseUrl}${filename}.md`;
-      console.log(`Page "${filename}" not found in index, trying source URL: ${contentUrl}`);
+      if (source.private && isFullUrl(source.private.contentBase)) {
+        // Private source with full URL contentBase
+        const baseUrl = source.private.contentBase.endsWith('/') ? source.private.contentBase : source.private.contentBase + '/';
+        contentUrl = `${baseUrl}${filename}.md`;
+      } else if (source.contentBaseUrl) {
+        // Regular source
+        contentUrl = `${source.contentBaseUrl}${filename}.md`;
+      } else if (source.private && !isFullUrl(source.private.contentBase)) {
+        // Private source with relative contentBase - will use git provider API below
+        contentUrl = ''; // placeholder, will be handled by provider
+      } else {
+        showError(`Cannot construct content URL for source "${sourceName}"`);
+        return;
+      }
+      if (contentUrl) {
+        console.log(`Page "${filename}" not found in index, trying source URL: ${contentUrl}`);
+      }
     }
 
-    // Check if we should use GitHub API (for private repos to avoid CORS)
-    if (source.editable && source.editable.provider === 'github') {
+    // Check if we should use git provider API (for private sources with relative contentBase)
+    if (source.private && source.private.provider === 'github' && !isFullUrl(source.private.contentBase)) {
       const provider = getProvider('github');
       if (provider && provider.fetchFileContent) {
-        const token = provider.getToken(sourceName) || source.editable.token;
+        const token = provider.getToken(sourceName) || source.private.token;
         if (token) {
-          const filePath = source.editable.basePath
-            ? `${source.editable.basePath}/${filename}.md`
-            : `${filename}.md`;
+          // Construct file path using contentBase (relative)
+          let filePath = `${filename}.md`;
+          const normalizedContentBase = source.private.contentBase.replace(/^\/+|\/+$/g, '');
+          if (normalizedContentBase) {
+            filePath = `${normalizedContentBase}/${filePath}`;
+          }
 
-          console.log(`Fetching from GitHub API: ${source.editable.repoUrl} - ${filePath}`);
+          console.log(`Fetching from GitHub API: ${source.private.repoUrl} - ${filePath}`);
 
           const result = await provider.fetchFileContent(
-            source.editable.repoUrl,
-            source.editable.branch,
+            source.private.repoUrl,
+            source.private.branch,
             filePath,
             token
           );
@@ -2406,7 +2913,7 @@ function getCurrentMode(): string {
 // Apply theme
 function applyTheme(themeName: string) {
   // Remove all theme classes
-  const allThemes = ['solarized-dark', 'solarized-light', 'monokai-dark', 'monokai-light', 'gruvbox-dark', 'gruvbox-light', 'farout-dark', 'farout-light'];
+  const allThemes = ['solarized-dark', 'solarized-light', 'monokai-dark', 'monokai-light', 'gruvbox-dark', 'gruvbox-light', 'farout-dark', 'farout-light', 'e-ink-dark', 'e-ink-light'];
   allThemes.forEach(theme => {
     document.body.classList.remove(`theme-${theme}`);
   });
@@ -2553,35 +3060,19 @@ async function loadAllSearchIndexes(): Promise<void> {
     try {
       let indexData: SearchIndexItem[] = [];
 
-      // Use GitHub API for private repositories to avoid CORS
-      if (source.editable && source.editable.provider === 'github') {
-        const provider = getProvider('github');
+      // Use git provider API for private sources
+      if (source.private) {
+        const provider = getProvider(source.private.provider);
         if (provider && provider.fetchFileContent) {
-          const token = provider.getToken(source.name) || source.editable.token;
+          const token = provider.getToken(source.name) || source.private.token;
           if (token) {
-            // Extract index file path from indexUrl
-            // Handle both URL formats:
-            // 1. https://raw.githubusercontent.com/{owner}/{repo}/{branch}/{path}
-            // 2. https://raw.githubusercontent.com/{owner}/{repo}/refs/heads/{branch}/{path}
-            let indexPath = 'public/search-index.json'; // default
+            const indexPath = source.private.indexPath;
 
-            const urlMatch1 = source.indexUrl.match(/githubusercontent\.com\/[^\/]+\/[^\/]+\/refs\/heads\/[^\/]+\/(.+)$/);
-            if (urlMatch1) {
-              // Format 2: refs/heads/{branch}/{path}
-              indexPath = urlMatch1[1];
-            } else {
-              // Format 1: {branch}/{path}
-              const urlMatch2 = source.indexUrl.match(/githubusercontent\.com\/[^\/]+\/[^\/]+\/[^\/]+\/(.+)$/);
-              if (urlMatch2) {
-                indexPath = urlMatch2[1];
-              }
-            }
-
-            console.log(`Fetching search index from GitHub API: ${source.name} - ${indexPath}`);
+            console.log(`Fetching search index from ${source.private.provider} API: ${source.name} - ${indexPath}`);
 
             const result = await provider.fetchFileContent(
-              source.editable.repoUrl,
-              source.editable.branch,
+              source.private.repoUrl,
+              source.private.branch,
               indexPath,
               token
             );
@@ -2593,18 +3084,19 @@ async function loadAllSearchIndexes(): Promise<void> {
               continue;
             }
           } else {
-            // No token, try regular fetch (might fail for private repos)
-            console.log(`No token for ${source.name}, trying regular fetch`);
-            const response = await fetch(source.indexUrl);
-            if (!response.ok) {
-              console.error(`Failed to load index from ${source.name}: ${response.statusText}`);
-              continue;
-            }
-            indexData = await response.json();
+            console.error(`No token for private source ${source.name}`);
+            continue;
           }
+        } else {
+          console.error(`Provider ${source.private.provider} not supported or doesn't support file fetching`);
+          continue;
         }
       } else {
-        // Regular fetch for non-GitHub sources or public repos
+        // Regular fetch for public sources
+        if (!source.indexUrl) {
+          console.error(`Source ${source.name} has no indexUrl`);
+          continue;
+        }
         const response = await fetch(source.indexUrl);
         if (!response.ok) {
           console.error(`Failed to load index from ${source.name}: ${response.statusText}`);
@@ -2614,11 +3106,25 @@ async function loadAllSearchIndexes(): Promise<void> {
       }
 
       // Augment each item with source information
-      const augmentedItems = indexData.map(item => ({
-        ...item,
-        _source: source.name,
-        _contentUrl: `${source.contentBaseUrl}${item.filename}.md`
-      }));
+      const augmentedItems = indexData.map(item => {
+        let contentUrl: string | undefined;
+
+        if (source.private && isFullUrl(source.private.contentBase)) {
+          // Private source with full URL contentBase (read-only external content)
+          const baseUrl = source.private.contentBase.endsWith('/') ? source.private.contentBase : source.private.contentBase + '/';
+          contentUrl = `${baseUrl}${item.filename}.md`;
+        } else if (source.contentBaseUrl) {
+          // Regular source
+          contentUrl = `${source.contentBaseUrl}${item.filename}.md`;
+        }
+        // For private sources with relative contentBase, don't set _contentUrl (will use API)
+
+        return {
+          ...item,
+          _source: source.name,
+          _contentUrl: contentUrl
+        };
+      });
 
       allIndexes.push(...augmentedItems);
       console.log(`Loaded ${augmentedItems.length} pages from ${source.name}`);

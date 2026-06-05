@@ -18,6 +18,7 @@ Options:
   --input <dir>       Input directory containing markdown files (default: content/)
   --output <file>     Output file path for search index (default: public/search-index.json)
   --state <file>      State file path for incremental indexing (default: .index-state.json)
+  --base-path <path>  Base path to strip from generated filenames
   --help              Show this help message
 
 Examples:
@@ -30,8 +31,8 @@ Examples:
   # Custom output file
   node build-index.js --output dist/search-index.json
 
-  # Custom input and output
-  node build-index.js --input /path/to/docs --output /path/to/index.json
+  # Custom input and output with base path stripping
+  node build-index.js --input content/test --base-path content
 
 Environment Variables:
   CONTENT_DIR         Default input directory (overridden by --input)
@@ -56,7 +57,8 @@ function parseArguments(argv) {
   const config = {
     contentDir: DEFAULT_CONTENT_DIR,
     indexFile: DEFAULT_INDEX_FILE,
-    stateFile: DEFAULT_STATE_FILE
+    stateFile: DEFAULT_STATE_FILE,
+    basePath: null
   };
 
   for (let i = 0; i < args.length; i++) {
@@ -82,6 +84,13 @@ function parseArguments(argv) {
           throw new Error('--state requires a file path');
         }
         config.stateFile = path.resolve(args[++i]);
+        break;
+
+      case '--base-path':
+        if (i + 1 >= args.length) {
+          throw new Error('--base-path requires a path');
+        }
+        config.basePath = args[++i];
         break;
 
       default:
@@ -257,7 +266,7 @@ function findMarkdownFiles(dir, baseDir = dir) {
 }
 
 // Index a single file
-function indexFile(relativePath, filePath, timestamp) {
+function indexFile(relativePath, filePath, timestamp, basePath = null) {
   const content = fs.readFileSync(filePath, 'utf-8');
   const { frontMatter, content: markdownContent } = parseFrontMatter(content);
 
@@ -272,7 +281,17 @@ function indexFile(relativePath, filePath, timestamp) {
   // Use relative path without .md extension as filename
   // This preserves subdirectory structure (e.g., "guides/intro")
   // Case-insensitive to handle .MD, .Md, etc.
-  const filename = relativePath.replace(/\.md$/i, '').replace(/\\/g, '/');
+  let filename = relativePath.replace(/\.md$/i, '').replace(/\\/g, '/');
+
+  // Strip base path if provided
+  if (basePath) {
+    const normalizedBasePath = basePath.replace(/\\/g, '/').replace(/\/$/, '');
+    if (filename.startsWith(normalizedBasePath + '/')) {
+      filename = filename.substring(normalizedBasePath.length + 1);
+    } else if (filename === normalizedBasePath) {
+      filename = '';
+    }
+  }
 
   return {
     filename,
@@ -291,6 +310,7 @@ function buildIndex(config = {}) {
   const contentDir = config.contentDir || DEFAULT_CONTENT_DIR;
   const outputFile = config.indexFile || DEFAULT_INDEX_FILE;
   const stateFile = config.stateFile || DEFAULT_STATE_FILE;
+  const basePath = config.basePath || null;
 
   const state = loadState(stateFile);
   const index = [];
@@ -311,7 +331,7 @@ function buildIndex(config = {}) {
     // Re-index if file is new or modified
     if (!lastIndexed || lastIndexed < mtime) {
       console.log(`Indexing: ${relativePath}`);
-      const indexed = indexFile(relativePath, filePath, indexTimestamp);
+      const indexed = indexFile(relativePath, filePath, indexTimestamp, basePath);
       index.push(indexed);
       state.indexed[relativePath] = mtime;
     } else {
@@ -329,13 +349,13 @@ function buildIndex(config = {}) {
           index.push(existing);
         } else {
           // File exists in state but not in index, re-index
-          const indexed = indexFile(relativePath, filePath, indexTimestamp);
+          const indexed = indexFile(relativePath, filePath, indexTimestamp, basePath);
           index.push(indexed);
           state.indexed[relativePath] = mtime;
         }
       } catch (e) {
         // No existing index, re-index
-        const indexed = indexFile(relativePath, filePath, indexTimestamp);
+        const indexed = indexFile(relativePath, filePath, indexTimestamp, basePath);
         index.push(indexed);
         state.indexed[relativePath] = mtime;
       }

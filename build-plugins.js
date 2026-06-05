@@ -171,8 +171,8 @@ for (const pluginName of pluginDirs) {
 
     plugins.push({
       id: manifest.id,
-      manifestUrl: `/plugins/${pluginName}.json`,
-      workerUrl: `/plugins/${pluginName}.worker.js`
+      manifestUrl: `./plugins/${pluginName}.json`,
+      workerUrl: `./plugins/${pluginName}.worker.js`
     });
 
     console.log(`✓ Built plugin: ${pluginName}`);

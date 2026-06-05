@@ -8,15 +8,69 @@ function getCurrentTheme(): 'dark' | 'default' {
   return isLight ? 'default' : 'dark';
 }
 
+function isEInkTheme(): boolean {
+  // Check if current theme is e-ink
+  return document.body.classList.contains('theme-e-ink-light') ||
+         document.body.classList.contains('theme-e-ink-dark');
+}
+
 function initializeMermaid(securityLevel: string = 'strict'): void {
   const theme = getCurrentTheme();
-  mermaid.initialize({
-    startOnLoad: false,
-    theme: theme,
-    securityLevel: securityLevel,
-    fontFamily: 'Consolas, Monaco, Courier New, monospace'
-  });
-  console.log(`[Mermaid Main Thread] Initialized with theme: ${theme}`);
+  const isEInk = isEInkTheme();
+
+  if (isEInk) {
+    // Black and white theme for e-ink displays
+    mermaid.initialize({
+      startOnLoad: false,
+      theme: 'base',
+      securityLevel: securityLevel,
+      fontFamily: 'Consolas, Monaco, Courier New, monospace',
+      themeVariables: {
+        primaryColor: 'transparent',
+        primaryTextColor: '#000000',
+        primaryBorderColor: '#000000',
+        lineColor: '#000000',
+        secondaryColor: 'transparent',
+        tertiaryColor: 'transparent',
+        background: 'transparent',
+        mainBkg: 'transparent',
+        secondBkg: 'transparent',
+        tertiaryBkg: 'transparent',
+        nodeBorder: '#000000',
+        clusterBkg: 'transparent',
+        clusterBorder: '#000000',
+        defaultLinkColor: '#000000',
+        titleColor: '#000000',
+        edgeLabelBackground: 'transparent',
+        actorBorder: '#000000',
+        actorBkg: 'transparent',
+        actorTextColor: '#000000',
+        actorLineColor: '#000000',
+        signalColor: '#000000',
+        signalTextColor: '#000000',
+        labelBoxBkgColor: 'transparent',
+        labelBoxBorderColor: '#000000',
+        labelTextColor: '#000000',
+        loopTextColor: '#000000',
+        noteBorderColor: '#000000',
+        noteBkgColor: 'transparent',
+        noteTextColor: '#000000',
+        activationBorderColor: '#000000',
+        activationBkgColor: 'transparent',
+        sequenceNumberColor: '#000000'
+      }
+    });
+    console.log(`[Mermaid Main Thread] Initialized with e-ink black & white theme`);
+  } else {
+    // Default colored themes for other themes
+    mermaid.initialize({
+      startOnLoad: false,
+      theme: theme,
+      securityLevel: securityLevel,
+      fontFamily: 'Consolas, Monaco, Courier New, monospace'
+    });
+    console.log(`[Mermaid Main Thread] Initialized with theme: ${theme}`);
+  }
 }
 
 export function onInit(config: any): void {

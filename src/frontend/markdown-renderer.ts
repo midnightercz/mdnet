@@ -9,6 +9,21 @@ const md = new MarkdownIt({
   typographer: true
 });
 
+// Helper to get content base URL from source
+function getContentBaseUrl(source: any): string | null {
+  if (source.private) {
+    // For private sources, only use contentBase if it's a full URL
+    const contentBase = source.private.contentBase;
+    if (contentBase && (contentBase.startsWith('http://') || contentBase.startsWith('https://'))) {
+      return contentBase;
+    }
+    // For relative contentBase, we can't construct URLs
+    return null;
+  }
+  // Regular source
+  return source.contentBaseUrl || null;
+}
+
 // Helper function to check if URL can be converted to local link
 function tryConvertUrlToLocal(url: string, env: any): string | null {
   if (!env.sources || !env.searchIndex) {
@@ -33,7 +48,11 @@ function tryConvertUrlToLocal(url: string, env: any): string | null {
 
   // Try each source
   for (const source of env.sources) {
-    let baseUrl = source.contentBaseUrl;
+    let baseUrl = getContentBaseUrl(source);
+
+    if (!baseUrl) {
+      continue; // Skip sources without a public content base URL
+    }
 
     // If baseUrl is absolute, extract path
     try {
