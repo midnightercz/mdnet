@@ -38,7 +38,7 @@
       "features"
     ],
     "properties": {},
-    "indexedAt": "2026-06-05T05:08:23.025Z"
+    "indexedAt": "2026-06-05T13:04:19.107Z"
   },
   {
     "filename": "features",
@@ -90,7 +90,7 @@
       "status": "published",
       "updated": "\"2024-04-30T00:00:00.000Z\""
     },
-    "indexedAt": "2026-06-05T05:08:23.025Z"
+    "indexedAt": "2026-06-05T13:04:19.107Z"
   },
   {
     "filename": "frontmatter-example",
@@ -133,7 +133,7 @@
       "category": "Tutorial",
       "status": "published"
     },
-    "indexedAt": "2026-06-05T05:08:23.025Z"
+    "indexedAt": "2026-06-05T13:04:19.107Z"
   },
   {
     "filename": "full-width-example",
@@ -174,7 +174,7 @@
       "title": "Full Width Example",
       "md-page-width": "100%"
     },
-    "indexedAt": "2026-06-05T05:08:23.025Z"
+    "indexedAt": "2026-06-05T13:04:19.107Z"
   },
   {
     "filename": "hashtag-example",
@@ -232,7 +232,7 @@
     "properties": {
       "title": "Hashtag Links Example"
     },
-    "indexedAt": "2026-06-05T05:08:23.025Z"
+    "indexedAt": "2026-06-05T13:04:19.107Z"
   },
   {
     "filename": "index",
@@ -284,7 +284,7 @@
       "infra/CONTACT"
     ],
     "properties": {},
-    "indexedAt": "2026-06-05T05:08:23.025Z"
+    "indexedAt": "2026-06-05T13:04:19.107Z"
   },
   {
     "filename": "layout-example",
@@ -356,7 +356,7 @@
       "md-layout-columns": "main,sidebar",
       "md-layout-columns-width": "65%,35%"
     },
-    "indexedAt": "2026-06-05T05:08:23.025Z"
+    "indexedAt": "2026-06-05T13:04:19.107Z"
   },
   {
     "filename": "page-width-example",
@@ -417,7 +417,7 @@
       "title": "Page Width Example",
       "md-page-width": "60%"
     },
-    "indexedAt": "2026-06-05T05:08:23.025Z"
+    "indexedAt": "2026-06-05T13:04:19.107Z"
   },
   {
     "filename": "property-search-example",
@@ -493,7 +493,7 @@
       "status": "published",
       "difficulty": "intermediate"
     },
-    "indexedAt": "2026-06-05T05:08:23.025Z"
+    "indexedAt": "2026-06-05T13:04:19.107Z"
   },
   {
     "filename": "search-example",
@@ -589,7 +589,7 @@
     "properties": {
       "title": "Search Feature"
     },
-    "indexedAt": "2026-06-05T05:08:23.025Z"
+    "indexedAt": "2026-06-05T13:04:19.107Z"
   },
   {
     "filename": "test-code-blocks",
@@ -614,7 +614,7 @@
       "md-layout": "columns",
       "md-layout-columns": "left,right"
     },
-    "indexedAt": "2026-06-05T05:08:23.025Z"
+    "indexedAt": "2026-06-05T13:04:19.107Z"
   },
   {
     "filename": "theme-example",
@@ -673,6 +673,6 @@
     "properties": {
       "title": "Theme Toggle Example"
     },
-    "indexedAt": "2026-06-05T05:08:23.025Z"
+    "indexedAt": "2026-06-05T13:04:19.107Z"
   }
 ]
