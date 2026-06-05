@@ -3,6 +3,7 @@ import { PluginManager } from './plugin-manager';
 import { getProvider } from './git-providers/registry';
 import { openSourceMap } from './source-map';
 import { DockManager } from './dock-manager';
+import { imageCache } from './image-cache';
 
 // Global declarations
 declare global {
@@ -1917,6 +1918,124 @@ async function handleRouteChange() {
   await loadPage(sourceName, filename, anchor);
 }
 
+// Extract image URLs from markdown content
+function extractImageUrls(markdown: string): string[] {
+  const imageUrls: string[] = [];
+
+  // Match markdown image syntax: ![alt](url)
+  const markdownImageRegex = /!\[([^\]]*)\]\(([^)]+)\)/g;
+  let match;
+
+  while ((match = markdownImageRegex.exec(markdown)) !== null) {
+    imageUrls.push(match[2]); // match[2] is the URL
+  }
+
+  return imageUrls;
+}
+
+// Fetch private GitHub images and return as data URLs
+async function fetchPrivateImages(
+  imageUrls: string[],
+  source: Source,
+  sourceName: string
+): Promise<{ [url: string]: string }> {
+  const privateImages: { [url: string]: string } = {};
+
+  // Only process if GitHub source with token
+  if (!source.editable || source.editable.provider !== 'github') {
+    return privateImages;
+  }
+
+  const provider = getProvider('github');
+  if (!provider || !(provider as any).fetchBinaryFileAsDataUrl) {
+    return privateImages;
+  }
+
+  const token = provider.getToken(sourceName) || source.editable.token;
+  if (!token) {
+    return privateImages;
+  }
+
+  // Process each image URL
+  const fetchPromises = imageUrls.map(async (url) => {
+    // Skip external URLs (http://, https://, //)
+    if (url.match(/^https?:\/\//) || url.startsWith('//')) {
+      return;
+    }
+
+    // Check cache first
+    if (imageCache.has(url)) {
+      privateImages[url] = imageCache.get(url)!;
+      return;
+    }
+
+    try {
+      // Construct file path
+      let filePath: string;
+
+      if (url.startsWith('/')) {
+        // Absolute path relative to content base
+        // Remove leading slash
+        filePath = url.slice(1);
+      } else {
+        // Relative path - resolve relative to current file
+        const currentDir = filename.includes('/')
+          ? filename.substring(0, filename.lastIndexOf('/'))
+          : '';
+
+        if (url.startsWith('./')) {
+          // ./image.png → same directory
+          filePath = currentDir ? `${currentDir}/${url.slice(2)}` : url.slice(2);
+        } else if (url.startsWith('../')) {
+          // ../image.png → parent directory
+          let path = url;
+          let dir = currentDir.split('/');
+
+          while (path.startsWith('../')) {
+            path = path.substring(3);
+            dir.pop();
+          }
+
+          filePath = dir.length > 0 ? `${dir.join('/')}/${path}` : path;
+        } else {
+          // image.png (no ./ prefix) → same directory
+          filePath = currentDir ? `${currentDir}/${url}` : url;
+        }
+      }
+
+      // Add base path if configured
+      if (source.editable.basePath) {
+        filePath = `${source.editable.basePath}/${filePath}`;
+      }
+
+      console.log(`Fetching image from GitHub: ${filePath}`);
+
+      // Fetch image via GitHub API
+      const result = await (provider as any).fetchBinaryFileAsDataUrl(
+        source.editable.repoUrl,
+        source.editable.branch,
+        filePath,
+        token
+      );
+
+      if (result.success && result.dataUrl) {
+        privateImages[url] = result.dataUrl;
+        imageCache.set(url, result.dataUrl);
+        console.log(`Image fetched successfully: ${url}`);
+      } else {
+        console.warn(`Failed to fetch image ${url}: ${result.error}`);
+      }
+    } catch (error) {
+      console.error(`Error fetching image ${url}:`, error);
+    }
+  });
+
+  // Wait for all image fetches to complete
+  await Promise.all(fetchPromises);
+
+  return privateImages;
+}
+
 // Load and render a page
 async function loadPage(sourceName: string, filename: string, anchor?: string, forceReload: boolean = false) {
   try {
@@ -2044,9 +2163,23 @@ async function loadPage(sourceName: string, filename: string, anchor?: string, f
 
 // Render the current page with current layout
 async function renderCurrentPage() {
+  // Extract image URLs from markdown
+  const imageUrls = extractImageUrls(currentPageContent);
+
+  // Fetch private images if needed
+  const sources = loadSources();
+  const source = sources.find(s => s.name === currentPageSource);
+  let privateImages = {};
+
+  if (source && imageUrls.length > 0) {
+    privateImages = await fetchPrivateImages(imageUrls, source, currentPageSource);
+  }
+
+  // Render markdown with private images
   const html = renderMarkdown(currentPageContent, currentPageFilename, currentPageSource, currentLayout, {
     sources: loadSources(),
-    searchIndex: searchIndex
+    searchIndex: searchIndex,
+    privateImages: privateImages
   });
   contentElement.innerHTML = html;
 

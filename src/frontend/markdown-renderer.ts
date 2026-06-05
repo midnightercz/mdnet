@@ -297,6 +297,31 @@ function customPluginBlocksPlugin(md: MarkdownIt) {
   };
 }
 
+// Private Image Plugin
+// Converts private GitHub images to data URLs
+function privateImagePlugin(md: MarkdownIt) {
+  const defaultImageRender = md.renderer.rules.image || ((tokens, idx, options, env, self) => {
+    return self.renderToken(tokens, idx, options);
+  });
+
+  md.renderer.rules.image = (tokens, idx, options, env, self) => {
+    const token = tokens[idx];
+    const srcIndex = token.attrIndex('src');
+
+    if (srcIndex >= 0 && env.privateImages) {
+      const src = token.attrs![srcIndex][1];
+
+      // Check if we have a data URL for this image
+      if (env.privateImages[src]) {
+        // Replace src with data URL
+        token.attrs![srcIndex][1] = env.privateImages[src];
+      }
+    }
+
+    return defaultImageRender(tokens, idx, options, env, self);
+  };
+}
+
 // Register plugins
 md.use(markdownItAnchor, {
   permalink: false,
@@ -308,6 +333,7 @@ md.use(markdownItAnchor, {
 });
 md.use(wikiLinksPlugin);
 md.use(anchorLinksPlugin);
+md.use(privateImagePlugin);
 md.use(customPluginBlocksPlugin);
 
 // Parse front matter from markdown content

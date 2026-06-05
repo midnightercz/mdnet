@@ -1,9 +1,0 @@
-Make MDNET serverless
-======================
-
-Change code to run without server part. Content files are located at github/gitlab or similar service.
-As a client I can open NDNet in browser and configure which sources I want to read. Source points to 
-search-index.json which provides indexed files. It should be possible for user to give a source 
-local name (like project-documentation for example). When searching the content, all sources should be
-queried, in result window it should be mentioned what is the source (by given local name )for found result.
-

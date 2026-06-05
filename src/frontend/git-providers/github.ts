@@ -188,4 +188,83 @@ export class GitHubProvider implements GitProvider {
       return { success: false, error: `Network error: ${error.message}` };
     }
   }
+
+  /**
+   * Fetch binary file (e.g., image) from GitHub and return as data URL
+   * Leverages GitHub API's base64 encoding - no need to re-encode
+   */
+  async fetchBinaryFileAsDataUrl(repoUrl: string, branch: string, filePath: string, token: string): Promise<{ success: boolean; dataUrl?: string; error?: string }> {
+    // Extract owner/repo
+    const match = repoUrl.match(/github\.com\/([^\/]+)\/([^\/]+)/);
+    if (!match) {
+      return { success: false, error: 'Invalid GitHub repository URL' };
+    }
+
+    const [_, owner, repo] = match;
+    const cleanRepo = repo.replace(/\.git$/, '');
+
+    try {
+      const response = await fetch(
+        `https://api.github.com/repos/${owner}/${cleanRepo}/contents/${filePath}?ref=${branch}`,
+        {
+          headers: {
+            'Authorization': `token ${token}`,
+            'Accept': 'application/vnd.github.v3+json'
+          }
+        }
+      );
+
+      if (!response.ok) {
+        if (response.status === 404) {
+          return { success: false, error: 'File not found' };
+        } else if (response.status === 401) {
+          return { success: false, error: 'Invalid token or insufficient permissions' };
+        } else {
+          return { success: false, error: `HTTP ${response.status}: ${response.statusText}` };
+        }
+      }
+
+      const data = await response.json();
+
+      // GitHub API returns content as base64
+      if (data.content) {
+        // Detect MIME type from file extension
+        const mimeType = this.getMimeTypeFromPath(filePath);
+
+        // Clean base64 content (remove newlines)
+        const base64Content = data.content.replace(/\n/g, '');
+
+        // Create data URL
+        const dataUrl = `data:${mimeType};base64,${base64Content}`;
+
+        return { success: true, dataUrl };
+      } else {
+        return { success: false, error: 'No content in response' };
+      }
+    } catch (error: any) {
+      return { success: false, error: `Network error: ${error.message}` };
+    }
+  }
+
+  /**
+   * Detect MIME type from file path/extension
+   */
+  private getMimeTypeFromPath(filePath: string): string {
+    const ext = filePath.toLowerCase().split('.').pop();
+
+    const mimeTypes: { [key: string]: string } = {
+      'png': 'image/png',
+      'jpg': 'image/jpeg',
+      'jpeg': 'image/jpeg',
+      'gif': 'image/gif',
+      'svg': 'image/svg+xml',
+      'webp': 'image/webp',
+      'bmp': 'image/bmp',
+      'ico': 'image/x-icon',
+      'tiff': 'image/tiff',
+      'tif': 'image/tiff'
+    };
+
+    return mimeTypes[ext || ''] || 'application/octet-stream';
+  }
 }
